@@ -19,29 +19,25 @@ const ENTER_SPRING = {
 
 const SLICE_OFFSETS = [-1.4, -0.7, 0, 0.7, 1.4];
 
+interface MonolithSceneProps {
+  portalFloodActive: boolean;
+}
+
 /**
  * Scene 01: HERO MONOLITH (Deep Charcoal #111112)
- * Inspired by landonorris.com:
- * - Interactive 5-slice focal "26" kinetic centerpiece shifting smoothly with pointer position
- * - Animated Electric Cobalt SVG signature draw
- * - Massive split-voice FTS / .web.id / DUAENAM typography
- * - Scroll-docking transform opening into a warm off-white (#F4F4EE) rounded-to-full-screen panel
+ * Dead-centered typographic monolith layered over an interactive 5-slice focal card,
+ * SVG vector signature draw, and scroll-linked warm bone expansion synchronized with Scene 02.
  */
-export function MonolithScene() {
+export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
   const trackRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const prefersReduced = Boolean(useReducedMotion());
 
-  // Continuous pointer tracking via MotionValue + Spring (zero React re-renders)
-  const rawX = useMotionValue(0);
+  // Pointer parallax kept strictly symmetric on Y-axis for slices & subtle vertical float
   const rawY = useMotionValue(0);
-  const smoothX = useSpring(rawX, { stiffness: 120, damping: 22 });
   const smoothY = useSpring(rawY, { stiffness: 120, damping: 22 });
-  const sliceShift = useTransform(smoothX, [-1, 1], [-18, 18]);
-  const domainX = useTransform(smoothX, [-1, 1], [-22, 22]);
-  const domainY = useTransform(smoothY, [-1, 1], [-14, 14]);
-  const inverseX = useTransform(smoothX, [-1, 1], [12, -12]);
-  const inverseY = useTransform(smoothY, [-1, 1], [8, -8]);
+  const sliceShift = useTransform(smoothY, [-1, 1], [-14, 14]);
+  const domainY = useTransform(smoothY, [-1, 1], [-6, 6]);
 
   const { scrollYProgress } = useScroll({
     target: trackRef,
@@ -54,9 +50,8 @@ export function MonolithScene() {
   const heroScale = useTransform(scrollYProgress, [0, 0.68], [1, 1.12]);
   const heroOpacity = useTransform(scrollYProgress, [0.36, 0.68], [1, 0]);
   const monolithScale = useTransform(scrollYProgress, [0, 0.65], [1, 0.84]);
-  const monolithRotate = useTransform(scrollYProgress, [0, 0.65], [0, -4]);
 
-  // Iconic Lando Norris rounded card expanding seamlessly into Scene 02's full warm canvas
+  // Rounded warm bone card expanding seamlessly into Scene 02
   const portalScale = useTransform(scrollYProgress, [0.46, 0.96], [0.16, 1.04]);
   const portalRadius = useTransform(scrollYProgress, [0.46, 0.9], [44, 0]);
   const portalOpacity = useTransform(scrollYProgress, [0.42, 0.56], [0, 1]);
@@ -70,12 +65,10 @@ export function MonolithScene() {
     stageRef.current.style.setProperty("--mx", `${(relX * 100).toFixed(2)}%`);
     stageRef.current.style.setProperty("--my", `${(relY * 100).toFixed(2)}%`);
 
-    rawX.set((relX - 0.5) * 2);
     rawY.set((relY - 0.5) * 2);
   };
 
   const handlePointerLeave = () => {
-    rawX.set(0);
     rawY.set(0);
   };
 
@@ -101,7 +94,7 @@ export function MonolithScene() {
           className="hero-spotlight pointer-events-none absolute inset-0"
         />
 
-        {/* Lando-style Interactive 5-Slice Focal "26" Visual Card behind headline */}
+        {/* Centered Interactive 5-Slice Focal "26" Backdrop */}
         <motion.div
           aria-hidden="true"
           style={
@@ -109,13 +102,12 @@ export function MonolithScene() {
               ? undefined
               : {
                   scale: monolithScale,
-                  rotate: monolithRotate,
                   opacity: heroOpacity,
                 }
           }
           className="pointer-events-none absolute inset-0 flex items-center justify-center"
         >
-          <div className="relative grid h-[min(64vh,460px)] w-[min(86vw,540px)] grid-cols-5 gap-1.5 sm:gap-2">
+          <div className="relative grid h-[min(60vh,430px)] w-[min(90vw,640px)] grid-cols-5 gap-1.5 sm:gap-2.5">
             {SLICE_OFFSETS.map((factor, idx) => (
               <SliceColumn
                 key={idx}
@@ -128,7 +120,7 @@ export function MonolithScene() {
           </div>
         </motion.div>
 
-        {/* Centerpiece Split-Voice Typography */}
+        {/* Dead-Centered Split-Voice Typography */}
         <motion.div
           style={
             prefersReduced
@@ -138,13 +130,11 @@ export function MonolithScene() {
                   opacity: heroOpacity,
                 }
           }
-          className="relative z-10 flex w-full max-w-[1440px] flex-col items-center text-center select-none"
+          className="relative z-10 mx-auto flex w-full max-w-[1440px] flex-col items-center text-center select-none"
         >
-          <div className="mb-5 flex items-center gap-3 sm:mb-7">
-            <span className="font-condensed text-xs font-bold tracking-[0.22em] uppercase text-[#A1A19C] sm:text-sm">
-              {IDENTITY.faculty}
-            </span>
-          </div>
+          <p className="mb-4 font-condensed text-xs font-bold tracking-[0.24em] uppercase text-[#A1A19C] sm:mb-6 sm:text-sm">
+            {IDENTITY.code}
+          </p>
 
           <h1
             id="konten-utama"
@@ -153,18 +143,13 @@ export function MonolithScene() {
           >
             {/* Top wordmark blade */}
             <motion.span
-              style={prefersReduced ? undefined : { x: inverseX, y: inverseY }}
-              className="block"
+              initial={prefersReduced ? false : { y: 44, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ ...ENTER_SPRING, delay: 0.04 }}
+              style={prefersReduced ? undefined : { x: topLineX }}
+              className="block font-condensed text-[clamp(3.9rem,1.8rem+11.5vw,8.4rem)] leading-[0.8] font-extrabold tracking-[-0.04em] uppercase text-[#F4F4EE] md:text-[clamp(7rem,2.4rem+11.5vw,15.2rem)]"
             >
-              <motion.span
-                initial={prefersReduced ? false : { y: 44, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ ...ENTER_SPRING, delay: 0.04 }}
-                style={prefersReduced ? undefined : { x: topLineX }}
-                className="block font-condensed text-[clamp(3.9rem,1.8rem+11.5vw,8.4rem)] leading-[0.8] font-extrabold tracking-[-0.04em] uppercase text-[#F4F4EE] md:text-[clamp(7rem,2.4rem+11.5vw,15.2rem)]"
-              >
-                FTS
-              </motion.span>
+              FTS
             </motion.span>
 
             {/* Dimensional editorial serif domain */}
@@ -172,7 +157,7 @@ export function MonolithScene() {
               initial={prefersReduced ? false : { scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ ...ENTER_SPRING, delay: 0.14 }}
-              style={prefersReduced ? undefined : { x: domainX, y: domainY }}
+              style={prefersReduced ? undefined : { y: domainY }}
               className="relative z-20 -my-2 block pb-1 font-editorial text-[clamp(2.5rem,1.2rem+6.2vw,5.2rem)] leading-[1.02] italic tracking-[-0.02em] text-[#0258FF] sm:-my-4 md:text-[clamp(4.2rem,1.8rem+5.6vw,8.6rem)]"
             >
               .web.id
@@ -180,36 +165,36 @@ export function MonolithScene() {
 
             {/* Bottom wordmark blade */}
             <motion.span
-              style={prefersReduced ? undefined : { x: inverseX, y: inverseY }}
-              className="block"
+              initial={prefersReduced ? false : { y: 44, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ ...ENTER_SPRING, delay: 0.1 }}
+              style={prefersReduced ? undefined : { x: bottomLineX }}
+              className="block font-condensed text-[clamp(3.9rem,1.8rem+11.5vw,8.4rem)] leading-[0.8] font-extrabold tracking-[-0.04em] uppercase text-[#F4F4EE] md:text-[clamp(7rem,2.4rem+11.5vw,15.2rem)]"
             >
-              <motion.span
-                initial={prefersReduced ? false : { y: 44, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ ...ENTER_SPRING, delay: 0.1 }}
-                style={prefersReduced ? undefined : { x: bottomLineX }}
-                className="block font-condensed text-[clamp(3.9rem,1.8rem+11.5vw,8.4rem)] leading-[0.8] font-extrabold tracking-[-0.04em] uppercase text-[#F4F4EE] md:text-[clamp(7rem,2.4rem+11.5vw,15.2rem)]"
-              >
-                DUAENAM
-              </motion.span>
+              DUAENAM
             </motion.span>
           </h1>
 
-          {/* Signature SVG vector draw underneath wordmark */}
-          <div className="mt-4 sm:mt-6">
+          {/* Sleek SVG vector signature draw */}
+          <div className="mt-3 sm:mt-5">
             <SignatureDraw
               trigger="mount"
               stroke="#0258FF"
-              className="h-10 w-auto sm:h-12 md:h-14"
+              className="h-9 w-auto sm:h-11"
             />
           </div>
+
+          {/* Core poetic editorial tagline */}
+          <p className="mt-2 font-editorial text-base italic tracking-[0.04em] text-[#A1A19C] sm:text-xl">
+            {IDENTITY.tagline}
+          </p>
         </motion.div>
 
-        {/* Tactile scroll pill */}
+        {/* Centered scroll pill */}
         <motion.a
           href="#portal"
           style={prefersReduced ? undefined : { opacity: heroOpacity }}
-          className="group relative z-20 mt-6 inline-flex min-h-[44px] items-center gap-2 rounded-full border border-white/20 bg-[#1A1B18]/80 px-5 font-condensed text-xs font-bold tracking-[0.2em] uppercase text-[#F4F4EE] backdrop-blur-sm transition-colors hover:border-[#0258FF] hover:bg-[#0258FF] sm:mt-8"
+          className="group relative z-20 mt-6 inline-flex min-h-[44px] items-center gap-2 rounded-full border border-white/20 bg-[#1A1B18]/85 px-5 font-condensed text-xs font-bold tracking-[0.2em] uppercase text-[#F4F4EE] backdrop-blur-sm transition-colors hover:border-[#0258FF] hover:bg-[#0258FF] sm:mt-8"
         >
           <span>SCROLL</span>
           <ArrowDownIcon
@@ -220,16 +205,20 @@ export function MonolithScene() {
           />
         </motion.a>
 
-        {/* Rounded warm bone card expanding smoothly to full screen into Scene 02 */}
+        {/* Rounded transition panel synchronized with Scene 02's cobalt flood */}
         {!prefersReduced && (
           <motion.div
             aria-hidden="true"
+            animate={{
+              backgroundColor: portalFloodActive ? "#0258FF" : "#F4F4EE",
+            }}
+            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
             style={{
               scale: portalScale,
               borderRadius: portalRadius,
               opacity: portalOpacity,
             }}
-            className="pointer-events-none absolute inset-0 z-30 origin-center bg-[#F4F4EE]"
+            className="pointer-events-none absolute inset-0 z-30 origin-center"
           />
         )}
       </div>
@@ -262,7 +251,6 @@ function SliceColumn({
           : "border-white/[0.08] bg-[#161715]"
       }`}
     >
-      {/* Subtle diagonal racing ribbon slicing across the 5 panels */}
       <div
         className="absolute inset-0"
         style={{
@@ -272,7 +260,6 @@ function SliceColumn({
         }}
       />
 
-      {/* Sliced giant 26 backdrop synced horizontally across all 5 columns */}
       <div
         className="absolute inset-y-0 flex items-center justify-center"
         style={{
@@ -285,7 +272,6 @@ function SliceColumn({
         </span>
       </div>
 
-      {/* Hairline index marker inside each slice */}
       <span className="absolute bottom-3 left-3 font-mono text-[10px] tracking-[0.14em] text-white/25">
         0{index + 1}
       </span>

@@ -14,11 +14,16 @@ const HOVER_SPRING = {
   damping: 24,
 };
 
+interface SignalSceneProps {
+  portalFloodActive: boolean;
+}
+
 /**
  * Scene 03: CONTACT & THREE-ZONE STUDIO FOOTER (Deep Charcoal #111112)
  * Inspired by landonorris.com's heavy-surface rounded card overlap & three-zone structured footer.
+ * Synchronizes its outer shoulder backdrop (#F4F4EE <-> #0258FF) seamlessly with Scene 02's cobalt flood.
  */
-export function SignalScene() {
+export function SignalScene({ portalFloodActive }: SignalSceneProps) {
   const [contactHovered, setContactHovered] = useState(false);
   const [copied, setCopied] = useState(false);
   const prefersReduced = Boolean(useReducedMotion());
@@ -41,12 +46,25 @@ export function SignalScene() {
   };
 
   return (
-    <div className="bg-[#F4F4EE]">
+    <div className="relative -mt-px bg-[#F4F4EE]">
+      {/* Synchronized Electric Cobalt continuation behind the rounded top shoulders */}
+      <motion.div
+        aria-hidden="true"
+        initial={false}
+        animate={{ opacity: portalFloodActive ? 1 : 0 }}
+        transition={
+          prefersReduced
+            ? { duration: 0.1 }
+            : { duration: 0.24, ease: [0.22, 1, 0.36, 1] }
+        }
+        className="pointer-events-none absolute inset-0 bg-[#0258FF]"
+      />
+
       <footer
         id="signal"
         data-scene="signal"
         data-theme="dark"
-        className="relative flex min-h-[100dvh] w-full flex-col justify-between overflow-hidden rounded-t-[28px] bg-[#111112] px-4 pt-24 pb-10 text-[#F4F4EE] sm:rounded-t-[44px] sm:px-8 sm:pb-12"
+        className="relative z-10 flex min-h-[100dvh] w-full flex-col justify-between overflow-hidden rounded-t-[28px] bg-[#111112] px-4 pt-24 pb-10 text-[#F4F4EE] sm:rounded-t-[44px] sm:px-8 sm:pb-12"
       >
         {/* Top index */}
         <div className="mx-auto w-full max-w-[1440px] text-center">
@@ -156,9 +174,9 @@ export function SignalScene() {
               </span>
             </div>
 
-            {/* Zone 2: Cohort Stamp */}
-            <p className="font-condensed text-xs font-bold tracking-[0.2em] uppercase text-[#A1A19C] md:text-center">
-              {IDENTITY.cohort} &middot; {IDENTITY.faculty}
+            {/* Zone 2: Poetic tagline */}
+            <p className="font-editorial text-sm italic tracking-[0.04em] text-[#A1A19C] md:text-center md:text-base">
+              {IDENTITY.tagline}
             </p>
 
             {/* Zone 3: Direct Gateway & Legal + Circular Back-to-Top */}

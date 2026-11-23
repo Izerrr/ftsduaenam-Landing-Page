@@ -7,11 +7,11 @@ interface SignatureDrawProps {
 }
 
 /**
- * Dynamic SVG stroke line-draw ribbon inspired by Lando Norris's animated vector signature.
- * Animates stroke pathLength from 0 to 1 smoothly using Motion on mount or viewport entry.
+ * Sleek sweeping SVG stroke signature flourish inspired by Lando Norris's animated vector mark.
+ * Animates stroke pathLength from 0 to 1 smoothly on mount or viewport entry.
  */
 export function SignatureDraw({
-  className = "h-16 w-auto",
+  className = "h-12 w-auto",
   trigger = "mount",
   stroke = "#0258FF",
 }: SignatureDrawProps) {
@@ -31,39 +31,38 @@ export function SignatureDraw({
 
   return (
     <svg
-      viewBox="0 0 360 96"
+      viewBox="0 0 320 64"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
       className={className}
     >
-      {/* Sweeping expressive kinetic stroke ("f26" abstract ribbon) */}
       <motion.path
-        d="M14 72 C 42 22, 74 12, 82 32 C 90 54, 48 80, 74 78 C 102 76, 134 24, 166 24 C 194 24, 166 72, 200 68 C 232 64, 260 18, 286 24 C 306 29, 274 68, 304 66 C 324 64, 336 48, 348 40"
+        d="M16 48 C 72 16, 128 10, 146 26 C 158 36, 118 52, 136 48 C 168 41, 224 22, 304 18"
         stroke={stroke}
-        strokeWidth="3.2"
+        strokeWidth="2.6"
         strokeLinecap="round"
         strokeLinejoin="round"
         {...animateProps}
         transition={{
-          pathLength: { duration: prefersReduced ? 0 : 1.35, ease: [0.22, 1, 0.36, 1] },
-          opacity: { duration: 0.25 },
+          pathLength: { duration: prefersReduced ? 0 : 1.15, ease: [0.22, 1, 0.36, 1] },
+          opacity: { duration: 0.2 },
         }}
       />
       <motion.path
-        d="M112 82 C 176 74, 246 72, 338 78"
+        d="M162 46 C 216 38, 266 34, 300 35"
         stroke={stroke}
-        strokeWidth="1.6"
+        strokeWidth="1.4"
         strokeLinecap="round"
         opacity="0.55"
         {...animateProps}
         transition={{
           pathLength: {
-            duration: prefersReduced ? 0 : 0.8,
-            delay: prefersReduced ? 0 : 0.72,
+            duration: prefersReduced ? 0 : 0.7,
+            delay: prefersReduced ? 0 : 0.65,
             ease: [0.22, 1, 0.36, 1],
           },
-          opacity: { duration: 0.2, delay: prefersReduced ? 0 : 0.72 },
+          opacity: { duration: 0.2, delay: prefersReduced ? 0 : 0.65 },
         }}
       />
     </svg>

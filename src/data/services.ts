@@ -12,8 +12,8 @@ export const IDENTITY = {
   monogram: "FTS26",
   brand: "ftsduaenam",
   domain: "ftsduaenam.web.id",
-  cohort: "INDEPENDENT · 26",
-  faculty: "FTS26 // XXVI",
+  code: "FTS26 // XXVI",
+  tagline: "Our work speaks louder than others' words.",
 } as const;
 
 export type SceneId = "monolith" | "portal" | "signal";

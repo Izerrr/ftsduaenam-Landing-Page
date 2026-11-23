@@ -1,6 +1,6 @@
 # FTS26 / `ftsduaenam.web.id`
 
-**INDEPENDENT // 26**
+*Our work speaks louder than others' words.*
 
 | Index | Destination |
 | :--- | :--- |

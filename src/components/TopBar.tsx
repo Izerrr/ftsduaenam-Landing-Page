@@ -108,21 +108,21 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
           }`}
         />
 
-        <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-4 px-4 py-4 sm:px-8 sm:py-5">
+        <div className="mx-auto grid max-w-[1480px] grid-cols-[1fr_auto] items-center gap-4 px-4 py-4 md:grid-cols-3 sm:px-8 sm:py-5">
           {/* Left: Clean FTS26 monogram */}
           <a
             href="#monolith"
             onClick={() => setMenuOpen(false)}
             aria-label="FTS26 beranda"
-            className={`pointer-events-auto inline-flex min-h-[44px] items-center transition-colors duration-200 ${primaryInk}`}
+            className={`pointer-events-auto inline-flex min-h-[44px] items-center justify-self-start transition-colors duration-200 ${primaryInk}`}
           >
             <FtsLogo className="h-7 w-auto sm:h-8" />
           </a>
 
-          {/* Center (Desktop): Clean 01 / 02 / 03 scene switcher */}
+          {/* Center (Desktop): True dead-center 01 / 02 / 03 scene switcher */}
           <nav
             aria-label="Navigasi utama"
-            className="pointer-events-auto hidden items-center gap-1 rounded-full border border-current/15 px-2 py-1 backdrop-blur-md md:flex"
+            className="pointer-events-auto hidden items-center justify-self-center gap-1 rounded-full border border-current/15 px-2 py-1 backdrop-blur-md md:flex"
             style={{
               backgroundColor: isLightSurface
                 ? "rgba(244, 244, 238, 0.72)"
@@ -160,7 +160,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
           </nav>
 
           {/* Right: Direct TaskPanel pill + Lando-style circular Menu trigger */}
-          <div className="pointer-events-auto flex items-center gap-2.5">
+          <div className="pointer-events-auto flex items-center justify-self-end gap-2.5">
             <a
               href={URLS.taskpanel}
               target="_blank"
@@ -259,8 +259,8 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
 
             {/* Bottom menu strip */}
             <div className="mx-auto flex w-full max-w-[1480px] flex-wrap items-center justify-between gap-4 pt-6 text-xs">
-              <p className="font-condensed font-bold tracking-[0.18em] uppercase text-[#A1A19C]">
-                {IDENTITY.cohort} &middot; {IDENTITY.faculty}
+              <p className="font-editorial text-sm italic text-[#A1A19C]">
+                {IDENTITY.tagline}
               </p>
 
               <div className="flex flex-wrap items-center gap-5">
@@ -309,7 +309,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
           aria-hidden="true"
           className={`pointer-events-none fixed bottom-5 left-4 z-30 hidden font-condensed text-[11px] font-bold tracking-[0.2em] uppercase transition-colors duration-200 sm:left-8 md:block ${mutedInk}`}
         >
-          {IDENTITY.cohort}
+          {IDENTITY.code}
         </div>
       )}
     </>

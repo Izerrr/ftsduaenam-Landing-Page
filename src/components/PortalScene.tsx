@@ -220,28 +220,6 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
             >
               PANEL
             </span>
-            <motion.span
-              aria-hidden="true"
-              animate={
-                prefersReduced
-                  ? undefined
-                  : {
-                      x: engaged ? 10 : 0,
-                      y: engaged ? -10 : 0,
-                      rotate: engaged ? 4 : 0,
-                    }
-              }
-              transition={FLOOD_SPRING}
-              className={`inline-flex self-center transition-colors duration-200 ${
-                engaged ? "text-white" : "text-[#111112]"
-              }`}
-            >
-              <ArrowUpRightIcon
-                size={44}
-                weight="bold"
-                className="h-9 w-9 sm:h-14 sm:w-14 md:h-20 md:w-20"
-              />
-            </motion.span>
           </span>
 
           {/* Razor kinetic sweep hairline */}
@@ -262,11 +240,17 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
           </span>
 
           <span
-            className={`mt-5 font-condensed text-sm font-bold tracking-[0.2em] uppercase transition-colors duration-200 sm:text-base ${
+            className={`mt-5 inline-flex items-center gap-2 font-condensed text-sm font-bold tracking-[0.2em] uppercase transition-colors duration-200 sm:text-base ${
               engaged ? "text-white" : "text-[#111112]"
             }`}
           >
-            TASKPANEL.FTSDUAENAM.WEB.ID
+            <span>TASKPANEL.FTSDUAENAM.WEB.ID</span>
+            <ArrowUpRightIcon
+              size={16}
+              weight="bold"
+              aria-hidden="true"
+              className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+            />
           </span>
         </motion.a>
 

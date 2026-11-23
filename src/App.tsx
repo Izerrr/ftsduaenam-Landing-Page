@@ -28,11 +28,11 @@ export function App() {
         <TopBar portalFloodActive={portalFloodActive} />
 
         <main>
-          <MonolithScene />
+          <MonolithScene portalFloodActive={portalFloodActive} />
           <PortalScene onFloodChange={handleFloodChange} />
         </main>
 
-        <SignalScene />
+        <SignalScene portalFloodActive={portalFloodActive} />
       </div>
     </MotionConfig>
   );
