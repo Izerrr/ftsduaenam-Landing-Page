@@ -1,17 +1,48 @@
 interface FtsLogoProps {
   className?: string;
+  compact?: boolean;
   decorative?: boolean;
 }
 
 /**
- * Custom brush-script SVG wordmark "ftsduaenam" inspired by editorial studio lettering.
- * Uses currentColor so it inverts instantaneously between cobalt (#0258FF) on light bands
- * and pure white (#FFFFFF) over #131313 dark bands.
+ * Fierce geometric monolith sigil + razor wordmark for ftsduaenam (XXVI).
+ * Features a chamfered twin-blade emblem sliced by an Electric Cobalt slash.
+ * Uses currentColor for the frame/wordmark so it adapts instantly across Obsidian, Bone, and Cobalt Flood.
  */
-export function FtsLogo({ className = "h-9 w-auto", decorative = true }: FtsLogoProps) {
+export function FtsLogo({
+  className = "h-9 w-auto",
+  compact = false,
+  decorative = true,
+}: FtsLogoProps) {
+  if (compact) {
+    return (
+      <svg
+        viewBox="0 0 44 44"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={className}
+        aria-hidden={decorative ? true : undefined}
+        role={decorative ? undefined : "img"}
+        aria-label={decorative ? undefined : "ftsduaenam sigil"}
+      >
+        {!decorative && <title>ftsduaenam sigil</title>}
+        {/* Chamfered tactical monolith frame */}
+        <polygon
+          points="3,3 33,3 41,11 41,41 11,41 3,33"
+          stroke="currentColor"
+          strokeWidth="2.4"
+        />
+        {/* Sharp diagonal twin-V blade slash */}
+        <polygon points="11,34 26,10 33,10 18,34" fill="var(--logo-accent, #0258FF)" />
+        <rect x="10" y="11" width="11" height="3" fill="currentColor" />
+        <rect x="23" y="30" width="11" height="3" fill="currentColor" />
+      </svg>
+    );
+  }
+
   return (
     <svg
-      viewBox="0 0 278 72"
+      viewBox="0 0 248 44"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
@@ -20,34 +51,50 @@ export function FtsLogo({ className = "h-9 w-auto", decorative = true }: FtsLogo
       aria-label={decorative ? undefined : "ftsduaenam"}
     >
       {!decorative && <title>ftsduaenam</title>}
-      <g transform="rotate(-2.2 139 36)">
-        <text
-          x="10"
-          y="48"
-          fill="currentColor"
-          style={{
-            fontFamily: "var(--font-script), Georgia, cursive",
-            fontSize: "43px",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          ftsduaenam
-        </text>
-        {/* Calligraphic brush underline strokes */}
-        <path
-          d="M16 59.5C72 54.8 154 53.2 246 57.2C252 57.5 256.5 56.4 259 55.5"
+
+      {/* Emblem: Chamfered obsidian/cobalt monolith sigil */}
+      <g>
+        <polygon
+          points="2,4 30,4 38,12 38,40 10,40 2,32"
           stroke="currentColor"
-          strokeWidth="3.2"
-          strokeLinecap="round"
+          strokeWidth="2.2"
         />
-        <path
-          d="M162 63.8C190 62.1 218 61.8 238 63.1"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          opacity="0.78"
-        />
+        <polygon points="10,33 24,10 30,10 16,33" fill="var(--logo-accent, #0258FF)" />
+        <rect x="9" y="11" width="10" height="2.8" fill="currentColor" />
+        <rect x="21" y="29.5" width="10" height="2.8" fill="currentColor" />
       </g>
+
+      {/* Razor condensed monolith wordmark */}
+      <text
+        x="48"
+        y="30"
+        fill="currentColor"
+        style={{
+          fontFamily: "var(--font-condensed), sans-serif",
+          fontSize: "27px",
+          fontWeight: 800,
+          letterSpacing: "0.08em",
+        }}
+      >
+        FTSDUAENAM
+      </text>
+
+      {/* Slash + XXVI cohort stamp */}
+      <polygon points="197,31 206,12 209.5,12 200.5,31" fill="var(--logo-accent, #0258FF)" />
+      <text
+        x="213"
+        y="29"
+        fill="currentColor"
+        opacity="0.72"
+        style={{
+          fontFamily: "var(--font-condensed), sans-serif",
+          fontSize: "15px",
+          fontWeight: 700,
+          letterSpacing: "0.14em",
+        }}
+      >
+        XXVI
+      </text>
     </svg>
   );
 }

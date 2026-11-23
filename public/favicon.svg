@@ -1,16 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <rect width="64" height="64" fill="#0258FF" />
-  <rect x="4" y="4" width="56" height="56" stroke="#FFFFFF" stroke-width="2" />
-  <text
-    x="32"
-    y="42"
-    text-anchor="middle"
-    fill="#FFFFFF"
-    font-family="Georgia, serif"
-    font-style="italic"
-    font-size="30"
-    font-weight="700"
-  >
-    26
-  </text>
+  <rect width="64" height="64" fill="#0B0B0C" />
+  <polygon points="8,8 46,8 56,18 56,56 18,56 8,46" stroke="#FFFFFF" stroke-width="2.5" fill="none" />
+  <polygon points="18,46 39,14 48,14 27,46" fill="#0258FF" />
+  <rect x="16" y="18" width="14" height="4" fill="#FFFFFF" />
+  <rect x="34" y="42" width="14" height="4" fill="#FFFFFF" />
 </svg>
