@@ -56,7 +56,7 @@ export function App() {
         {/* Minimalist right-click quick action pill */}
         <StudioContextMenu />
 
-        <TopBar portalFloodActive={cobaltSurfaceActive} />
+        <TopBar portalFloodActive={portalFloodActive} />
 
         <main>
           <MonolithScene onCobaltCoverChange={handleCobaltBridgeChange} />

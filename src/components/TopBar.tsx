@@ -29,13 +29,19 @@ const EQ_BARS = [
   { rest: 8, peak: 15, duration: 0.62, delay: 0.08 },
 ] as const;
 
+type HeaderSurface = "dark" | "light" | "cobalt";
+
 /**
  * OFF+BRAND architectural top bar + full-screen kinetic overlay menu.
- * Replaces generic rounded pills with chamfered studio plates and a slash-divided
- * 01 / 02 / 03 telemetry index bar with a spring-sliding baseline indicator.
+ * Tracks two distinct signals cleanly during scroll:
+ * 1. `activeScene`: which chapter visually dominates center viewport (`01. FTS` / `02. WORKSPACE` / `03. CONTACT`).
+ * 2. `navSurface`: the exact background color physically sitting behind the header (`y = 32px`),
+ *    preventing mismatched white-on-white or dark-on-dark seams between sections.
  */
 export function TopBar({ portalFloodActive }: TopBarProps) {
   const [activeScene, setActiveScene] = useState<SceneId>("monolith");
+  const [navSceneAtBar, setNavSceneAtBar] = useState<SceneId>("monolith");
+  const [bridgeBehindBar, setBridgeBehindBar] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [hoveredScene, setHoveredScene] = useState<SceneMeta | null>(null);
   const soundEnabled = useSoundEnabled();
@@ -47,11 +53,54 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
     );
     if (sections.length === 0) return;
 
-    const syncActiveScene = () => {
-      const probeY = window.innerHeight * 0.45;
+    let rafPending = false;
+
+    const syncState = () => {
+      rafPending = false;
+      const vh = window.innerHeight;
+      const barProbeY = 32;
+      const focusProbeY = vh * 0.48;
+
+      const bridgeEl = document.querySelector<HTMLElement>(
+        "[data-cobalt-bridge='true']"
+      );
+      const bridgeRect = bridgeEl?.getBoundingClientRect();
+      const bridgeVisible =
+        Boolean(bridgeEl && bridgeRect) &&
+        parseFloat(getComputedStyle(bridgeEl!).opacity) > 0.2;
+
+      const bridgeAtBar =
+        bridgeVisible &&
+        Boolean(bridgeRect) &&
+        bridgeRect!.top <= barProbeY + 8 &&
+        bridgeRect!.bottom > barProbeY;
+      setBridgeBehindBar(bridgeAtBar);
+
+      // 1. Detect background section sitting directly under the header bar
       for (const el of sections) {
         const rect = el.getBoundingClientRect();
-        if (rect.top <= probeY && rect.bottom >= probeY) {
+        if (rect.top <= barProbeY && rect.bottom > barProbeY) {
+          const id = el.dataset.scene as SceneId | undefined;
+          if (id) setNavSceneAtBar(id);
+          break;
+        }
+      }
+
+      // 2. Detect visually dominant chapter at viewport center
+      if (
+        bridgeVisible &&
+        Boolean(bridgeRect) &&
+        bridgeRect!.height >= vh * 0.56 &&
+        bridgeRect!.top <= focusProbeY &&
+        bridgeRect!.bottom > focusProbeY
+      ) {
+        setActiveScene("portal");
+        return;
+      }
+
+      for (const el of sections) {
+        const rect = el.getBoundingClientRect();
+        if (rect.top <= focusProbeY && rect.bottom > focusProbeY) {
           const id = el.dataset.scene as SceneId | undefined;
           if (id) setActiveScene(id);
           return;
@@ -59,23 +108,26 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
       }
     };
 
-    const observer = new IntersectionObserver(
-      () => {
-        syncActiveScene();
-      },
-      { threshold: [0, 0.25, 0.5, 0.75, 1] }
-    );
+    const scheduleSync = () => {
+      if (rafPending) return;
+      rafPending = true;
+      window.requestAnimationFrame(syncState);
+    };
+
+    const observer = new IntersectionObserver(scheduleSync, {
+      threshold: [0, 0.25, 0.5, 0.75, 1],
+    });
 
     sections.forEach((el) => observer.observe(el));
-    syncActiveScene();
+    syncState();
 
-    window.addEventListener("scroll", syncActiveScene, { passive: true });
-    window.addEventListener("resize", syncActiveScene, { passive: true });
+    window.addEventListener("scroll", scheduleSync, { passive: true });
+    window.addEventListener("resize", scheduleSync, { passive: true });
 
     return () => {
       observer.disconnect();
-      window.removeEventListener("scroll", syncActiveScene);
-      window.removeEventListener("resize", syncActiveScene);
+      window.removeEventListener("scroll", scheduleSync);
+      window.removeEventListener("resize", scheduleSync);
     };
   }, []);
 
@@ -91,23 +143,40 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [menuOpen]);
 
-  const isLightSurface =
-    activeScene === "portal" && !portalFloodActive && !menuOpen;
+  const headerSurface: HeaderSurface = menuOpen
+    ? "dark"
+    : bridgeBehindBar || (navSceneAtBar === "portal" && portalFloodActive)
+      ? "cobalt"
+      : navSceneAtBar === "portal"
+        ? "light"
+        : "dark";
 
-  const primaryInk = isLightSurface ? "text-[#111112]" : "text-[#F4F4EE]";
+  const isLightSurface = headerSurface === "light";
+  const isCobaltSurface = headerSurface === "cobalt";
+
+  const primaryInk = isLightSurface
+    ? "text-[#111112]"
+    : isCobaltSurface
+      ? "text-white"
+      : "text-[#F4F4EE]";
+
   const inactiveStep = isLightSurface
     ? "text-[#4A4A45] hover:text-[#111112]"
-    : "text-[#A1A19C] hover:text-white";
+    : isCobaltSurface
+      ? "text-white/75 hover:text-white"
+      : "text-[#A1A19C] hover:text-white";
 
   const ctaPlate = isLightSurface
     ? "bg-[#111112] text-[#F4F4EE] hover:bg-[#0258FF] hover:text-white"
-    : portalFloodActive && !menuOpen
+    : isCobaltSurface
       ? "bg-white text-[#111112] hover:bg-[#111112] hover:text-white"
       : "bg-[#F4F4EE] text-[#111112] hover:bg-[#0258FF] hover:text-white";
 
   const plateStyle = isLightSurface
     ? "border-[#111112]/25 bg-[#F4F4EE]/90 text-[#111112] hover:border-[#111112]"
-    : "border-white/25 bg-[#111112]/85 text-[#F4F4EE] hover:border-white";
+    : isCobaltSurface
+      ? "border-white/40 bg-white/10 text-white hover:border-white hover:bg-white hover:text-[#0258FF]"
+      : "border-white/25 bg-[#111112]/85 text-[#F4F4EE] hover:border-white";
 
   const handleToggleMenu = () => {
     studioSound.playClick();
@@ -124,8 +193,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
         data-theme={isLightSurface ? "light" : "dark"}
         style={
           {
-            "--logo-accent":
-              portalFloodActive && !menuOpen ? "#FFFFFF" : "#0258FF",
+            "--logo-accent": isCobaltSurface ? "#FFFFFF" : "#0258FF",
           } as React.CSSProperties
         }
       >
@@ -133,7 +201,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
         <div
           aria-hidden="true"
           className={`scroll-rail fixed top-0 right-0 left-0 h-[2px] transition-colors duration-200 ${
-            portalFloodActive && !menuOpen ? "bg-white" : "bg-[#0258FF]"
+            isCobaltSurface ? "bg-white" : "bg-[#0258FF]"
           }`}
         />
 
@@ -172,7 +240,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                       <span
                         className={`font-editorial text-base italic tracking-[-0.02em] transition-colors ${
                           isActive
-                            ? portalFloodActive && !menuOpen
+                            ? isCobaltSurface
                               ? "text-white"
                               : "text-[#0258FF]"
                             : "opacity-70 group-hover:opacity-100"
@@ -193,9 +261,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                             damping: 30,
                           }}
                           className={`absolute right-0 bottom-1 left-0 h-[1.5px] ${
-                            portalFloodActive && !menuOpen
-                              ? "bg-white"
-                              : "bg-[#0258FF]"
+                            isCobaltSurface ? "bg-white" : "bg-[#0258FF]"
                           }`}
                         />
                       )}
@@ -240,7 +306,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                     }
                     className={`w-[2px] transition-colors ${
                       soundEnabled
-                        ? portalFloodActive && !menuOpen
+                        ? isCobaltSurface
                           ? "bg-white"
                           : "bg-[#0258FF]"
                         : "bg-current opacity-50"

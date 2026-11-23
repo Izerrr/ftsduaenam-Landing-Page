@@ -46,6 +46,7 @@ interface MonolithSceneProps {
 export function MonolithScene({ onCobaltCoverChange }: MonolithSceneProps) {
   const trackRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const bridgeRef = useRef<HTMLDivElement>(null);
   const prefersReduced = Boolean(useReducedMotion());
   const scrollSkew = useScrollSkew(2.8);
   const [overdrive, setOverdrive] = useState(false);
@@ -78,15 +79,17 @@ export function MonolithScene({ onCobaltCoverChange }: MonolithSceneProps) {
     offset: ["end end", "end start"],
   });
 
-  // Keep TopBar contrast synced while the #0258FF bridge card sits behind the header
+  // Track real Cobalt bridge bounds so StudioCursor/brushes switch accurately on blue surface
   useEffect(() => {
     const syncCover = () => {
-      const rect = trackRef.current?.getBoundingClientRect();
+      const bridgeRect = bridgeRef.current?.getBoundingClientRect();
       const covered =
         !prefersReduced &&
-        Boolean(rect) &&
-        rect!.bottom > 64 &&
-        scrollYProgress.get() >= 0.54;
+        Boolean(bridgeRect) &&
+        bridgeRect!.height >= window.innerHeight * 0.58 &&
+        bridgeRect!.top <= window.innerHeight * 0.5 &&
+        bridgeRect!.bottom >= window.innerHeight * 0.5 &&
+        scrollYProgress.get() >= 0.3;
       if (covered !== cobaltCoverRef.current) {
         cobaltCoverRef.current = covered;
         onCobaltCoverChange?.(covered);
@@ -95,19 +98,23 @@ export function MonolithScene({ onCobaltCoverChange }: MonolithSceneProps) {
 
     syncCover();
     window.addEventListener("scroll", syncCover, { passive: true });
+    window.addEventListener("resize", syncCover, { passive: true });
     return () => {
       window.removeEventListener("scroll", syncCover);
+      window.removeEventListener("resize", syncCover);
       onCobaltCoverChange?.(false);
     };
   }, [onCobaltCoverChange, prefersReduced, scrollYProgress]);
 
-  useMotionValueEvent(scrollYProgress, "change", (latest) => {
-    const rect = trackRef.current?.getBoundingClientRect();
+  useMotionValueEvent(scrollYProgress, "change", () => {
+    const bridgeRect = bridgeRef.current?.getBoundingClientRect();
     const covered =
       !prefersReduced &&
-      Boolean(rect) &&
-      rect!.bottom > 64 &&
-      latest >= 0.54;
+      Boolean(bridgeRect) &&
+      bridgeRect!.height >= window.innerHeight * 0.58 &&
+      bridgeRect!.top <= window.innerHeight * 0.5 &&
+      bridgeRect!.bottom >= window.innerHeight * 0.5 &&
+      scrollYProgress.get() >= 0.3;
     if (covered !== cobaltCoverRef.current) {
       cobaltCoverRef.current = covered;
       onCobaltCoverChange?.(covered);
@@ -492,6 +499,8 @@ export function MonolithScene({ onCobaltCoverChange }: MonolithSceneProps) {
         {/* Distinct Electric Cobalt transition card rising out of Dark Hero into Warm Bone Scene 02 */}
         {!prefersReduced && (
           <motion.div
+            ref={bridgeRef}
+            data-cobalt-bridge="true"
             aria-hidden="true"
             style={{
               scale: portalScale,
