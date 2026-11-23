@@ -104,7 +104,7 @@ export function StudioContextMenu() {
           exit={prefersReduced ? { opacity: 0 } : { opacity: 0, scale: 0.94, y: 2 }}
           transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
           style={{ left: pos.x, top: pos.y, width: MENU_WIDTH }}
-          className="fixed z-[55] overflow-hidden rounded-2xl border border-white/15 bg-[#111112]/92 p-1.5 text-[#F4F4EE] shadow-2xl backdrop-blur-md"
+          className="chamfer-md fixed z-[55] overflow-hidden border border-white/20 bg-[#111112]/95 p-1.5 text-[#F4F4EE] shadow-2xl backdrop-blur-md"
         >
           <a
             role="menuitem"
@@ -115,7 +115,7 @@ export function StudioContextMenu() {
               studioSound.playClick();
               setPos(null);
             }}
-            className="flex min-h-[42px] items-center justify-between rounded-xl px-3 font-condensed text-xs font-extrabold tracking-[0.14em] uppercase text-[#F4F4EE] transition-colors hover:bg-[#0258FF] hover:text-white"
+            className="flex min-h-[42px] items-center justify-between px-3 font-condensed text-xs font-extrabold tracking-[0.14em] uppercase text-[#F4F4EE] transition-colors hover:bg-[#0258FF] hover:text-white"
           >
             <span>TASKPANEL</span>
             <ArrowUpRightIcon size={14} weight="bold" aria-hidden="true" />
@@ -125,7 +125,7 @@ export function StudioContextMenu() {
             role="menuitem"
             type="button"
             onClick={handleCopyEmail}
-            className="flex min-h-[42px] w-full cursor-pointer items-center justify-between rounded-xl px-3 font-condensed text-xs font-extrabold tracking-[0.14em] uppercase text-[#F4F4EE] transition-colors hover:bg-white/10"
+            className="flex min-h-[42px] w-full cursor-pointer items-center justify-between px-3 font-condensed text-xs font-extrabold tracking-[0.14em] uppercase text-[#F4F4EE] transition-colors hover:bg-white/10"
           >
             <span>COPY EMAIL</span>
             <CopyIcon size={14} weight="bold" aria-hidden="true" />
@@ -135,7 +135,7 @@ export function StudioContextMenu() {
             role="menuitem"
             type="button"
             onClick={handleClearCanvas}
-            className="flex min-h-[42px] w-full cursor-pointer items-center justify-between rounded-xl px-3 font-condensed text-xs font-extrabold tracking-[0.14em] uppercase text-[#A1A19C] transition-colors hover:bg-white/10 hover:text-white"
+            className="flex min-h-[42px] w-full cursor-pointer items-center justify-between px-3 font-condensed text-xs font-extrabold tracking-[0.14em] uppercase text-[#A1A19C] transition-colors hover:bg-white/10 hover:text-white"
           >
             <span>CLEAR CANVAS</span>
             <EraserIcon size={14} weight="bold" aria-hidden="true" />

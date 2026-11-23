@@ -76,7 +76,7 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
         id="signal"
         data-scene="signal"
         data-theme="dark"
-        className="relative z-10 flex min-h-[100dvh] w-full flex-col justify-between overflow-hidden rounded-t-[28px] bg-[#111112] px-4 pt-24 pb-10 text-[#F4F4EE] sm:rounded-t-[44px] sm:px-8 sm:pb-12"
+        className="relative z-10 flex min-h-[100dvh] w-full flex-col justify-between overflow-hidden border-t border-white/15 bg-[#111112] px-4 pt-24 pb-10 text-[#F4F4EE] sm:px-8 sm:pb-12"
       >
         {/* Top index */}
         <div className="mx-auto w-full max-w-[1440px] text-center">
@@ -147,14 +147,14 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
             </span>
           </motion.a>
 
-          {/* Magnetic Studio Pill Action Row */}
+          {/* Magnetic Chamfered Studio Plate Action Row */}
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
             <Magnetic strength={0.2}>
               <a
                 href={URLS.email}
                 onClick={() => studioSound.playClick()}
                 data-cursor="MAIL"
-                className="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-[#F4F4EE] px-6 font-mono text-xs font-medium tracking-[0.04em] text-[#111112] transition-colors hover:bg-[#0258FF] hover:text-white active:scale-[0.98] sm:text-sm"
+                className="chamfer-md inline-flex min-h-[48px] items-center gap-2.5 bg-[#F4F4EE] px-6 font-mono text-xs font-medium tracking-[0.04em] text-[#111112] transition-colors hover:bg-[#0258FF] hover:text-white active:scale-[0.98] sm:text-sm"
               >
                 <span>{URLS.emailDisplay}</span>
                 <ArrowUpRightIcon size={16} weight="bold" aria-hidden="true" />
@@ -166,7 +166,7 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
                 type="button"
                 onClick={handleCopyEmail}
                 data-cursor={copied ? "COPIED" : "COPY"}
-                className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full border border-white/25 bg-transparent px-5 font-condensed text-xs font-extrabold tracking-[0.16em] uppercase text-[#F4F4EE] transition-colors hover:border-white hover:bg-white hover:text-[#111112] active:scale-[0.98]"
+                className="chamfer-md inline-flex min-h-[48px] cursor-pointer items-center gap-2 border border-white/25 bg-transparent px-5 font-condensed text-xs font-extrabold tracking-[0.16em] uppercase text-[#F4F4EE] transition-colors hover:border-white hover:bg-white hover:text-[#111112] active:scale-[0.98]"
               >
                 {copied ? (
                   <>
@@ -247,7 +247,7 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
                   onClick={scrollToTop}
                   data-cursor="TOP"
                   aria-label="Kembali ke paling atas"
-                  className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-white/25 text-[#F4F4EE] transition-colors hover:border-[#0258FF] hover:bg-[#0258FF] hover:text-white active:scale-95"
+                  className="chamfer-sm inline-flex h-11 w-11 cursor-pointer items-center justify-center border border-white/25 text-[#F4F4EE] transition-colors hover:border-[#0258FF] hover:bg-[#0258FF] hover:text-white active:scale-95"
                 >
                   <ArrowUpIcon size={17} weight="bold" aria-hidden="true" />
                 </button>

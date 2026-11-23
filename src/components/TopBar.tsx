@@ -29,8 +29,9 @@ const EQ_BARS = [
 ] as const;
 
 /**
- * Lando Norris (OFF+BRAND) inspired minimal top bar + full-screen kinetic overlay menu
- * with live background index preview and pure Web Audio equalizer toggle.
+ * OFF+BRAND architectural top bar + full-screen kinetic overlay menu.
+ * Replaces generic rounded pills with chamfered studio plates and a slash-divided
+ * 01 / 02 / 03 telemetry index bar with a spring-sliding baseline indicator.
  */
 export function TopBar({ portalFloodActive }: TopBarProps) {
   const [activeScene, setActiveScene] = useState<SceneId>("monolith");
@@ -89,21 +90,24 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [menuOpen]);
 
-  const isLightSurface = activeScene === "portal" && !portalFloodActive && !menuOpen;
+  const isLightSurface =
+    activeScene === "portal" && !portalFloodActive && !menuOpen;
 
   const primaryInk = isLightSurface ? "text-[#111112]" : "text-[#F4F4EE]";
-  const mutedInk = isLightSurface ? "text-[#4A4A45]" : "text-[#A1A19C]";
   const inactiveStep = isLightSurface
     ? "text-[#4A4A45] hover:text-[#111112]"
     : "text-[#A1A19C] hover:text-white";
-  const ctaPill = isLightSurface
+  const dividerTone = isLightSurface ? "text-[#111112]/20" : "text-white/20";
+
+  const ctaPlate = isLightSurface
     ? "bg-[#111112] text-[#F4F4EE] hover:bg-[#0258FF] hover:text-white"
     : portalFloodActive && !menuOpen
       ? "bg-white text-[#111112] hover:bg-[#111112] hover:text-white"
       : "bg-[#F4F4EE] text-[#111112] hover:bg-[#0258FF] hover:text-white";
-  const menuBtnStyle = isLightSurface
+
+  const plateStyle = isLightSurface
     ? "border-[#111112]/25 bg-[#F4F4EE]/90 text-[#111112] hover:border-[#111112]"
-    : "border-white/25 bg-[#111112]/80 text-[#F4F4EE] hover:border-white";
+    : "border-white/25 bg-[#111112]/85 text-[#F4F4EE] hover:border-white";
 
   const handleToggleMenu = () => {
     studioSound.playClick();
@@ -147,39 +151,62 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
             <FtsLogo className="h-7 w-auto sm:h-8" />
           </a>
 
-          {/* Center (Desktop): True dead-center 01 / 02 / 03 scene switcher */}
+          {/* Center (Desktop): Architectural slash-divided 01 / 02 / 03 telemetry rail */}
           <nav
             aria-label="Navigasi utama"
-            className="pointer-events-auto hidden items-center justify-self-center gap-1 rounded-full border border-current/15 px-2 py-1 backdrop-blur-md md:flex"
-            style={{
-              backgroundColor: isLightSurface
-                ? "rgba(244, 244, 238, 0.72)"
-                : "rgba(17, 17, 18, 0.55)",
-            }}
+            className="pointer-events-auto hidden items-center justify-self-center md:flex"
           >
-            <ul className="flex items-center gap-1">
-              {SCENES.map((scene) => {
+            <ul className="flex items-center border-b border-current/15">
+              {SCENES.map((scene, idx) => {
                 const isActive = scene.id === activeScene;
                 return (
-                  <li key={scene.id}>
+                  <li key={scene.id} className="relative flex items-center">
+                    {idx > 0 && (
+                      <span
+                        aria-hidden="true"
+                        className={`select-none px-1 font-condensed text-xs font-bold ${dividerTone}`}
+                      >
+                        /
+                      </span>
+                    )}
                     <a
                       href={scene.href}
+                      onClick={() => studioSound.playClick()}
                       aria-current={isActive ? "location" : undefined}
-                      className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3.5 font-condensed text-xs font-bold tracking-[0.14em] uppercase transition-colors duration-200 ${
+                      className={`relative inline-flex min-h-[44px] items-baseline gap-1.5 px-3.5 py-2 transition-colors duration-200 ${
                         isActive ? primaryInk : inactiveStep
                       }`}
                     >
                       <span
-                        aria-hidden="true"
-                        className={`h-1.5 w-1.5 rounded-full transition-colors ${
+                        className={`font-mono text-[11px] tracking-[0.12em] transition-colors ${
                           isActive
                             ? portalFloodActive && !menuOpen
+                              ? "text-white font-semibold"
+                              : "text-[#0258FF] font-semibold"
+                            : "opacity-60"
+                        }`}
+                      >
+                        {scene.index}
+                      </span>
+                      <span className="font-condensed text-xs font-extrabold tracking-[0.18em] uppercase">
+                        {scene.navTitle}
+                      </span>
+
+                      {isActive && (
+                        <motion.span
+                          layoutId="topbar-scene-line"
+                          transition={{
+                            type: "spring",
+                            stiffness: 380,
+                            damping: 30,
+                          }}
+                          className={`absolute right-2 -bottom-[1px] left-2 h-[2px] ${
+                            portalFloodActive && !menuOpen
                               ? "bg-white"
                               : "bg-[#0258FF]"
-                            : "bg-current opacity-25"
-                        }`}
-                      />
-                      <span>{scene.index}</span>
+                          }`}
+                        />
+                      )}
                     </a>
                   </li>
                 );
@@ -187,9 +214,9 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
             </ul>
           </nav>
 
-          {/* Right: Equalizer sound toggle + Direct TaskPanel pill + Menu trigger */}
+          {/* Right: Chamfered architectural control cluster (Sound + TaskPanel + Menu) */}
           <div className="pointer-events-auto flex items-center justify-self-end gap-2">
-            <Magnetic strength={0.22}>
+            <Magnetic strength={0.2}>
               <button
                 type="button"
                 onClick={() => studioSound.toggle()}
@@ -198,7 +225,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                   soundEnabled ? "Matikan efek suara" : "Aktifkan efek suara"
                 }
                 data-cursor={soundEnabled ? "MUTE" : "SOUND"}
-                className={`inline-flex h-11 w-11 cursor-pointer items-center justify-center gap-[3px] rounded-full border backdrop-blur-md transition-colors duration-200 active:scale-[0.95] ${menuBtnStyle}`}
+                className={`chamfer-sm inline-flex h-11 w-11 cursor-pointer items-center justify-center gap-[3px] border backdrop-blur-md transition-colors duration-200 active:scale-[0.96] ${plateStyle}`}
               >
                 {EQ_BARS.map((bar, idx) => (
                   <motion.span
@@ -219,7 +246,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                           }
                         : { duration: 0.2 }
                     }
-                    className={`w-[2px] rounded-full transition-colors ${
+                    className={`w-[2px] transition-colors ${
                       soundEnabled
                         ? portalFloodActive && !menuOpen
                           ? "bg-white"
@@ -231,21 +258,21 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
               </button>
             </Magnetic>
 
-            <Magnetic strength={0.22} className="hidden sm:inline-flex">
+            <Magnetic strength={0.2} className="hidden sm:inline-flex">
               <a
                 href={URLS.taskpanel}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => studioSound.playClick()}
                 data-cursor="OPEN"
-                className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-5 font-condensed text-sm font-extrabold tracking-[0.1em] uppercase transition-all duration-200 active:scale-[0.97] ${ctaPill}`}
+                className={`chamfer-sm inline-flex min-h-[44px] items-center gap-2 px-5 font-condensed text-sm font-extrabold tracking-[0.12em] uppercase transition-all duration-200 active:scale-[0.97] ${ctaPlate}`}
               >
                 <span>TASKPANEL</span>
                 <ArrowUpRightIcon size={15} weight="bold" aria-hidden="true" />
               </a>
             </Magnetic>
 
-            <Magnetic strength={0.22}>
+            <Magnetic strength={0.2}>
               <button
                 type="button"
                 onClick={handleToggleMenu}
@@ -253,7 +280,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                 aria-controls="fullscreen-studio-menu"
                 aria-label={menuOpen ? "Tutup menu" : "Buka menu"}
                 data-cursor={menuOpen ? "CLOSE" : "MENU"}
-                className={`inline-flex min-h-[44px] cursor-pointer items-center gap-2.5 rounded-full border px-4 font-condensed text-xs font-extrabold tracking-[0.16em] uppercase backdrop-blur-md transition-colors duration-200 active:scale-[0.97] ${menuBtnStyle}`}
+                className={`chamfer-sm inline-flex min-h-[44px] cursor-pointer items-center gap-2.5 border px-4 font-condensed text-xs font-extrabold tracking-[0.16em] uppercase backdrop-blur-md transition-colors duration-200 active:scale-[0.97] ${plateStyle}`}
               >
                 <span>{menuOpen ? "CLOSE" : "MENU"}</span>
                 <span
@@ -281,7 +308,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
         </div>
       </header>
 
-      {/* Full-Screen Kinetic Curtain Menu with Watermark Preview (OFF+BRAND style) */}
+      {/* Full-Screen Kinetic Curtain Menu with Watermark Preview */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -303,11 +330,15 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                   key={hoveredScene.id}
                   aria-hidden="true"
                   initial={
-                    prefersReduced ? { opacity: 0 } : { opacity: 0, y: 36, scale: 0.94 }
+                    prefersReduced
+                      ? { opacity: 0 }
+                      : { opacity: 0, y: 36, scale: 0.94 }
                   }
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={
-                    prefersReduced ? { opacity: 0 } : { opacity: 0, y: -24, scale: 0.96 }
+                    prefersReduced
+                      ? { opacity: 0 }
+                      : { opacity: 0, y: -24, scale: 0.96 }
                   }
                   transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
                   className="pointer-events-none fixed inset-0 flex items-center justify-end pr-6 select-none sm:pr-16"
@@ -365,7 +396,6 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                           className="shrink-0 text-[#A1A19C] transition-all duration-200 group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:text-[#0258FF]"
                         />
                       </motion.a>
-                      {/* Sweeping Electric Cobalt hairline divider */}
                       <motion.span
                         aria-hidden="true"
                         initial={false}
@@ -443,16 +473,6 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Bottom corner whisper outside menu */}
-      {!menuOpen && (
-        <div
-          aria-hidden="true"
-          className={`pointer-events-none fixed bottom-5 left-4 z-30 hidden font-condensed text-[11px] font-bold tracking-[0.2em] uppercase transition-colors duration-200 sm:left-8 md:block ${mutedInk}`}
-        >
-          {IDENTITY.code}
-        </div>
-      )}
     </>
   );
 }

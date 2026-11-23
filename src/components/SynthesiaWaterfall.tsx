@@ -445,7 +445,7 @@ export function SynthesiaWaterfall({
         </AnimatePresence>
       </div>
 
-      {/* Minimalist auto-hiding WPM + Live Ticker Pill */}
+      {/* Minimalist auto-hiding WPM + Live Ticker Plate */}
       <AnimatePresence>
         {hudVisible && (
           <motion.div
@@ -456,13 +456,13 @@ export function SynthesiaWaterfall({
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className="pointer-events-none fixed inset-x-0 bottom-5 z-[39] flex justify-center px-4"
           >
-            <div className="flex items-center gap-3 rounded-full border border-white/15 bg-[#111112]/90 px-4 py-2 text-[#F4F4EE] shadow-2xl backdrop-blur-md">
+            <div className="chamfer-md flex items-center gap-3 border border-white/20 bg-[#111112]/92 px-4 py-2 text-[#F4F4EE] shadow-2xl backdrop-blur-md">
               <motion.span
                 key={pulseTick}
                 initial={{ scale: 1.7 }}
                 animate={{ scale: 1 }}
                 transition={{ duration: 0.16 }}
-                className="h-2 w-2 rounded-full bg-[#0258FF]"
+                className="h-2 w-2 bg-[#0258FF]"
               />
               <div className="flex items-baseline gap-1.5">
                 <span className="font-condensed text-lg leading-none font-extrabold tracking-[-0.02em] tabular-nums text-white">

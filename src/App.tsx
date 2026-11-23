@@ -31,8 +31,8 @@ export function App() {
         {/* Crisp 0.78s studio preloader (00 -> 26) */}
         <StudioPreloader />
 
-        {/* Minimalist OFF+BRAND mix-blend-difference studio cursor */}
-        <StudioCursor />
+        {/* Bespoke OFF+BRAND triangular studio pointer */}
+        <StudioCursor portalFloodActive={portalFloodActive} />
 
         {/* Subtle tactile studio grain */}
         <div

@@ -330,7 +330,7 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
           >
             <div className="flex flex-wrap items-center gap-3 sm:gap-4">
               <span
-                className={`rounded-full border px-2.5 py-0.5 font-mono text-[10px] tracking-[0.14em] uppercase transition-colors duration-200 ${
+                className={`chamfer-sm border px-2.5 py-0.5 font-mono text-[10px] tracking-[0.14em] uppercase transition-colors duration-200 ${
                   engaged
                     ? "border-white/35 text-white/90"
                     : "border-[#111112]/20 text-[#4A4A45] group-hover:border-[#0258FF]/45 group-hover:text-[#004BE0]"
@@ -386,10 +386,10 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
             href="#signal"
             onClick={() => studioSound.playClick()}
             data-cursor="NEXT"
-            className={`group mt-8 inline-flex min-h-[44px] items-center gap-2 rounded-full px-4 font-condensed text-xs font-bold tracking-[0.2em] uppercase transition-colors duration-200 ${
+            className={`chamfer-sm group mt-8 inline-flex min-h-[44px] items-center gap-2 border px-4 font-condensed text-xs font-bold tracking-[0.2em] uppercase transition-colors duration-200 ${
               engaged
-                ? "text-white hover:bg-white/15"
-                : "text-[#4A4A45] hover:text-[#111112]"
+                ? "border-white/30 text-white hover:border-white hover:bg-white/15"
+                : "border-[#111112]/20 text-[#4A4A45] hover:border-[#111112] hover:text-[#111112]"
             }`}
           >
             <span>03 / CONTACT</span>
@@ -403,7 +403,7 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
         </motion.div>
       </motion.div>
 
-      {/* Spring-lagged floating studio preview pill following pointer on hover (Desktop) */}
+      {/* Spring-lagged floating studio preview plate following pointer on hover (Desktop) */}
       {hasFinePointer && !prefersReduced && (
         <motion.div
           aria-hidden="true"
@@ -414,9 +414,9 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
             scale: engaged ? 1 : 0.88,
           }}
           transition={{ duration: 0.18 }}
-          className="pointer-events-none absolute top-0 left-0 z-30 flex items-center gap-2.5 rounded-full border border-white/20 bg-[#111112] px-4 py-2 text-white shadow-xl"
+          className="chamfer-sm pointer-events-none absolute top-0 left-0 z-30 flex items-center gap-2.5 border border-white/25 bg-[#111112] px-4 py-2 text-white shadow-xl"
         >
-          <span className="h-2 w-2 rounded-full bg-[#0258FF]" />
+          <span className="h-2 w-2 bg-[#0258FF]" />
           <span className="font-condensed text-xs font-bold tracking-[0.16em] uppercase whitespace-nowrap">
             OPEN WORKSPACE
           </span>

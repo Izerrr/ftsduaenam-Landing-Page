@@ -32,6 +32,7 @@ export type SceneId = "monolith" | "portal" | "signal";
 export interface SceneMeta {
   id: SceneId;
   index: string;
+  navTitle: string;
   label: string;
   href: `#${SceneId}`;
   theme: "dark" | "light";
@@ -41,6 +42,7 @@ export const SCENES: readonly SceneMeta[] = [
   {
     id: "monolith",
     index: "01",
+    navTitle: "INDEX",
     label: "FTSDUAENAM",
     href: "#monolith",
     theme: "dark",
@@ -48,6 +50,7 @@ export const SCENES: readonly SceneMeta[] = [
   {
     id: "portal",
     index: "02",
+    navTitle: "WORKSPACE",
     label: "TASKPANEL",
     href: "#portal",
     theme: "light",
@@ -55,6 +58,7 @@ export const SCENES: readonly SceneMeta[] = [
   {
     id: "signal",
     index: "03",
+    navTitle: "CONTACT",
     label: "CONTACT",
     href: "#signal",
     theme: "dark",
