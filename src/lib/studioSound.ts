@@ -203,63 +203,50 @@ class StudioSoundEngine {
     });
   }
 
-  /** Warm pentatonic electric-piano note mapped to horizontal key position (0..1) */
-  playNote(normX: number) {
+  /** Tactile mechanical key-switch "thock" with subtle studio tonal variation (non-piano) */
+  playTypeThock(normX: number, isHeavy = false) {
     const ctx = this.getReadyContext();
     if (!ctx) return;
 
-    const scale = [
-      293.66, // D4
-      349.23, // F4
-      392.0,  // G4
-      440.0,  // A4
-      523.25, // C5
-      587.33, // D5
-      698.46, // F5
-      783.99, // G5
-      880.0,  // A5
-      1046.5, // C6
-      1174.66, // D6
-    ];
-    const index = Math.max(
-      0,
-      Math.min(scale.length - 1, Math.round(normX * (scale.length - 1)))
-    );
-    const freq = scale[index];
     const now = ctx.currentTime;
+    const baseFreq = (isHeavy ? 112 : 138) + normX * 42 + (Math.random() - 0.5) * 14;
 
-    const osc = ctx.createOscillator();
-    const overtone = ctx.createOscillator();
-    const filter = ctx.createBiquadFilter();
-    const gain = ctx.createGain();
+    // 1. Deep gasket-mount body thock
+    const bodyOsc = ctx.createOscillator();
+    const bodyGain = ctx.createGain();
+    bodyOsc.type = "triangle";
+    bodyOsc.frequency.setValueAtTime(baseFreq, now);
+    bodyOsc.frequency.exponentialRampToValueAtTime(48, now + 0.045);
 
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(freq, now);
+    bodyGain.gain.setValueAtTime(0.085, now);
+    bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
 
-    overtone.type = "triangle";
-    overtone.frequency.setValueAtTime(freq * 2, now);
+    bodyOsc.connect(bodyGain);
+    bodyGain.connect(ctx.destination);
+    bodyOsc.start(now);
+    bodyOsc.stop(now + 0.055);
 
-    const overtoneGain = ctx.createGain();
-    overtoneGain.gain.setValueAtTime(0.18, now);
+    // 2. Crisp short keycap transient tick
+    const tickOsc = ctx.createOscillator();
+    const tickFilter = ctx.createBiquadFilter();
+    const tickGain = ctx.createGain();
 
-    filter.type = "lowpass";
-    filter.frequency.setValueAtTime(2400, now);
-    filter.frequency.exponentialRampToValueAtTime(680, now + 0.35);
+    tickOsc.type = "sine";
+    tickOsc.frequency.setValueAtTime(1450 + normX * 480, now);
+    tickOsc.frequency.exponentialRampToValueAtTime(420, now + 0.014);
 
-    gain.gain.setValueAtTime(0.001, now);
-    gain.gain.linearRampToValueAtTime(0.055, now + 0.012);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+    tickFilter.type = "bandpass";
+    tickFilter.frequency.setValueAtTime(1600, now);
+    tickFilter.Q.setValueAtTime(1.4, now);
 
-    osc.connect(filter);
-    overtone.connect(overtoneGain);
-    overtoneGain.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
+    tickGain.gain.setValueAtTime(0.032, now);
+    tickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.016);
 
-    osc.start(now);
-    overtone.start(now);
-    osc.stop(now + 0.44);
-    overtone.stop(now + 0.44);
+    tickOsc.connect(tickFilter);
+    tickFilter.connect(tickGain);
+    tickGain.connect(ctx.destination);
+    tickOsc.start(now);
+    tickOsc.stop(now + 0.02);
   }
 
   /** Warm lush D-minor 9 chord shimmer triggered by secret keyword easter eggs */

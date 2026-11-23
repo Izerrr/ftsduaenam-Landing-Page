@@ -10,33 +10,22 @@ import {
   toggleStudioInvert,
 } from "@/lib/studioEvents";
 
-interface NoteBar {
+interface KineticBubble {
   id: number;
   code: string;
   label: string;
   x: number;
-  width: number;
-  topY: number;
-  bottomY: number;
-  held: boolean;
-  onFlood: boolean;
-}
-
-interface SynthBubble {
-  x: number;
   y: number;
   radius: number;
+  targetRadius: number;
   vy: number;
   wobblePhase: number;
+  wobbleSpeed: number;
   wobbleAmp: number;
   life: number;
-  onFlood: boolean;
-}
-
-interface KeyFlare {
-  x: number;
-  width: number;
-  life: number;
+  maxLife: number;
+  held: boolean;
+  isAccent: boolean;
   onFlood: boolean;
 }
 
@@ -45,6 +34,8 @@ interface SynthesiaWaterfallProps {
 }
 
 const DEFAULT_TITLE = "FTS26 | ftsduaenam.web.id";
+const WPM_WINDOW_MS = 6000;
+const HUD_IDLE_MS = 2400;
 
 const KEYBOARD_ROWS = [
   "1234567890-=",
@@ -53,68 +44,35 @@ const KEYBOARD_ROWS = [
   "zxcvbnm,./",
 ] as const;
 
-function getKeyLayout(key: string): {
-  normX: number;
-  width: number;
-  label: string;
-} {
+function getColumnNorm(key: string): { normX: number; label: string } {
   if (key === " ") {
-    const jitter = (Math.random() - 0.5) * 0.24;
-    return { normX: 0.5 + jitter, width: 46, label: "SPACE" };
+    return { normX: 0.25 + Math.random() * 0.5, label: "" };
   }
   if (key === "Enter") {
-    return { normX: 0.9, width: 38, label: "RET" };
+    return { normX: 0.88, label: "↵" };
   }
-
   const lower = key.toLowerCase();
   for (const row of KEYBOARD_ROWS) {
     const idx = row.indexOf(lower);
     if (idx !== -1) {
-      const normX = 0.08 + (idx / (row.length - 1)) * 0.84;
-      return { normX, width: 20, label: key.toUpperCase() };
+      return {
+        normX: 0.08 + (idx / (row.length - 1)) * 0.84,
+        label: key.toUpperCase(),
+      };
     }
   }
-
   const code = lower.charCodeAt(0) || 65;
   return {
-    normX: 0.1 + ((code % 15) / 14) * 0.8,
-    width: 20,
+    normX: 0.12 + ((code % 13) / 12) * 0.76,
     label: key.toUpperCase(),
   };
 }
 
-function drawRoundedPill(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number
-) {
-  const radius = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + w - radius, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
-  ctx.lineTo(x + w, y + h - radius);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
-  ctx.lineTo(x + radius, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-}
-
-const RISE_SPEED_PX = 290;
-const WPM_WINDOW_MS = 6000;
-const HUD_IDLE_MS = 2600;
-
 /**
- * Keyboard Synthesia Waterfall & Floating Bubble Synth + Live WPM Meter:
- * - Maps QWERTY keystrokes to rising Synthesia beams & buoyant bubbles with scroll inertia.
- * - Feeds 5-channel Hero slice equalizer hits in real time.
- * - Listens for hidden keyword triggers ("fts", "duaenam", "invert", "clear").
- * - Updates browser tab title dynamically during typing or when tab is inactive.
+ * Kinetic Bubble & Typography Drift + Live WPM Meter (Non-MIDI):
+ * - Typing launches crisp OFF+BRAND glass orbs & floating character echoes upward from the bottom.
+ * - Holding any key inflates/charges its orb before releasing it into upward zero-gravity drift.
+ * - Features scroll-inertia momentum, 5-slice Hero equalizer pulses, secret keywords, and tab WPM.
  */
 export function SynthesiaWaterfall({
   portalFloodActive,
@@ -129,10 +87,8 @@ export function SynthesiaWaterfall({
   const [pulseTick, setPulseTick] = useState(0);
   const [waveIds, setWaveIds] = useState<number[]>([]);
 
-  const barsRef = useRef<NoteBar[]>([]);
-  const bubblesRef = useRef<SynthBubble[]>([]);
-  const flaresRef = useRef<KeyFlare[]>([]);
-  const heldByCodeRef = useRef<Map<string, NoteBar>>(new Map());
+  const bubblesRef = useRef<KineticBubble[]>([]);
+  const heldByCodeRef = useRef<Map<string, KineticBubble>>(new Map());
   const timestampsRef = useRef<number[]>([]);
   const sessionStartRef = useRef<number>(0);
   const commandBufRef = useRef("");
@@ -141,7 +97,7 @@ export function SynthesiaWaterfall({
     portalFloodRef.current = portalFloodActive;
   }, [portalFloodActive]);
 
-  // Dynamic browser tab title (idle / live WPM / standing by)
+  // Dynamic browser tab title
   useEffect(() => {
     const syncTitle = () => {
       if (document.hidden) {
@@ -152,12 +108,9 @@ export function SynthesiaWaterfall({
         document.title = DEFAULT_TITLE;
       }
     };
-
     syncTitle();
     document.addEventListener("visibilitychange", syncTitle);
-    return () => {
-      document.removeEventListener("visibilitychange", syncTitle);
-    };
+    return () => document.removeEventListener("visibilitychange", syncTitle);
   }, [hudVisible, wpm]);
 
   useEffect(() => {
@@ -169,14 +122,13 @@ export function SynthesiaWaterfall({
   // Cobalt shockwave subscription
   useEffect(() => {
     let seq = 0;
-    const unsubscribe = subscribeCobaltWave(() => {
+    return subscribeCobaltWave(() => {
       const id = ++seq;
       setWaveIds((prev) => [...prev.slice(-2), id]);
       window.setTimeout(() => {
         setWaveIds((prev) => prev.filter((item) => item !== id));
       }, 900);
     });
-    return unsubscribe;
   }, []);
 
   useEffect(() => {
@@ -188,7 +140,7 @@ export function SynthesiaWaterfall({
     let rafId = 0;
     let lastTime = performance.now();
     let hideTimer = 0;
-    let noteSeq = 0;
+    let bubbleSeq = 0;
     let lastScrollY = window.scrollY;
     let pendingScrollShift = 0;
 
@@ -214,18 +166,17 @@ export function SynthesiaWaterfall({
         1800,
         Math.min(WPM_WINDOW_MS, now - sessionStartRef.current)
       );
-      const words = count / 5;
-      return Math.min(240, Math.round((words * 60000) / span));
+      return Math.min(240, Math.round(((count / 5) * 60000) / span));
     };
 
     const onScroll = () => {
       const currentY = window.scrollY;
       const delta = currentY - lastScrollY;
       lastScrollY = currentY;
-      if (barsRef.current.length > 0 || bubblesRef.current.length > 0) {
+      if (bubblesRef.current.length > 0) {
         pendingScrollShift = Math.max(
           -180,
-          Math.min(180, pendingScrollShift + delta * 0.45)
+          Math.min(180, pendingScrollShift + delta * 0.5)
         );
       }
     };
@@ -238,141 +189,89 @@ export function SynthesiaWaterfall({
         const dt = Math.min(0.05, (now - lastTime) / 1000);
         lastTime = now;
 
-        const w = window.innerWidth;
-        const h = window.innerHeight;
-        ctx.clearRect(0, 0, w, h);
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        ctx.clearRect(0, 0, vw, vh);
 
-        // Smoothed scroll-inertia push shared across waterfalls & bubbles
-        const scrollShiftY = pendingScrollShift * 0.22;
-        pendingScrollShift *= 0.78;
+        const scrollShiftY = pendingScrollShift * 0.24;
+        pendingScrollShift *= 0.76;
         if (Math.abs(pendingScrollShift) < 0.05) pendingScrollShift = 0;
 
-        // 1. Bottom key impact flares
-        const flares = flaresRef.current;
-        for (let i = flares.length - 1; i >= 0; i -= 1) {
-          const flare = flares[i];
-          flare.life -= dt * 2.6;
-          if (flare.life <= 0) {
-            flares.splice(i, 1);
-            continue;
-          }
-          const grad = ctx.createRadialGradient(
-            flare.x,
-            h - 4,
-            1,
-            flare.x,
-            h - 4,
-            flare.width * 2.2
-          );
-          if (flare.onFlood) {
-            grad.addColorStop(
-              0,
-              `rgba(255, 255, 255, ${(flare.life * 0.72).toFixed(3)})`
-            );
-            grad.addColorStop(1, "rgba(255, 255, 255, 0)");
-          } else {
-            grad.addColorStop(
-              0,
-              `rgba(2, 88, 255, ${(flare.life * 0.72).toFixed(3)})`
-            );
-            grad.addColorStop(1, "rgba(2, 88, 255, 0)");
-          }
-          ctx.fillStyle = grad;
-          ctx.beginPath();
-          ctx.arc(flare.x, h - 4, flare.width * 2.2, Math.PI, 0);
-          ctx.fill();
-        }
-
-        // 2. Synthesia rising note bars
-        const bars = barsRef.current;
-        for (let i = bars.length - 1; i >= 0; i -= 1) {
-          const bar = bars[i];
-          bar.topY -= RISE_SPEED_PX * dt + scrollShiftY * 0.45;
-          if (!bar.held) {
-            bar.bottomY -= RISE_SPEED_PX * dt + scrollShiftY * 0.45;
-          }
-
-          if (bar.bottomY < -20) {
-            bars.splice(i, 1);
-            continue;
-          }
-
-          const height = Math.max(10, bar.bottomY - bar.topY);
-          const midY = (bar.topY + bar.bottomY) / 2;
-          const verticalFade = Math.max(0, Math.min(1, midY / (h * 0.42)));
-          const alpha = Math.max(0.05, verticalFade * 0.9);
-
-          const xLeft = bar.x - bar.width / 2;
-          const grad = ctx.createLinearGradient(0, bar.topY, 0, bar.bottomY);
-          if (bar.onFlood) {
-            grad.addColorStop(0, `rgba(255, 255, 255, ${alpha.toFixed(3)})`);
-            grad.addColorStop(
-              1,
-              `rgba(244, 244, 238, ${(alpha * 0.45).toFixed(3)})`
-            );
-          } else {
-            grad.addColorStop(0, `rgba(92, 154, 255, ${alpha.toFixed(3)})`);
-            grad.addColorStop(
-              0.45,
-              `rgba(2, 88, 255, ${(alpha * 0.9).toFixed(3)})`
-            );
-            grad.addColorStop(
-              1,
-              `rgba(2, 88, 255, ${(alpha * 0.35).toFixed(3)})`
-            );
-          }
-
-          drawRoundedPill(ctx, xLeft, bar.topY, bar.width, height, 9);
-          ctx.fillStyle = grad;
-          ctx.fill();
-
-          ctx.strokeStyle = bar.onFlood
-            ? `rgba(255, 255, 255, ${(alpha * 0.9).toFixed(3)})`
-            : `rgba(140, 186, 255, ${(alpha * 0.65).toFixed(3)})`;
-          ctx.lineWidth = 1;
-          ctx.stroke();
-
-          if (height >= 16 && bar.label !== "SPACE") {
-            ctx.fillStyle = bar.onFlood
-              ? `rgba(17, 17, 18, ${alpha.toFixed(3)})`
-              : `rgba(255, 255, 255, ${alpha.toFixed(3)})`;
-            ctx.font = '700 10px "Barlow Condensed", sans-serif';
-            ctx.textAlign = "center";
-            ctx.textBaseline = "top";
-            ctx.fillText(bar.label, bar.x, bar.topY + 4);
-          }
-        }
-
-        // 3. Buoyant Synthesia bubbles
         const bubbles = bubblesRef.current;
         for (let i = bubbles.length - 1; i >= 0; i -= 1) {
           const b = bubbles[i];
-          b.y -= b.vy * dt + scrollShiftY * 0.7;
-          b.wobblePhase += dt * 4.2;
-          b.x += Math.sin(b.wobblePhase) * b.wobbleAmp * dt;
-          b.life -= dt * 0.48;
 
-          if (b.life <= 0 || b.y < -12) {
+          if (b.held) {
+            // Inflate crisply while key is held down near bottom launch line
+            b.radius = Math.min(38, b.radius + 36 * dt);
+            b.y = Math.max(vh - 76, b.y - 24 * dt);
+          } else {
+            b.radius += (b.targetRadius - b.radius) * Math.min(1, dt * 8);
+            b.y -= b.vy * dt + scrollShiftY * 0.65;
+            b.wobblePhase += dt * b.wobbleSpeed;
+            b.x += Math.sin(b.wobblePhase) * b.wobbleAmp * dt;
+            b.life -= dt;
+          }
+
+          if (b.life <= 0 || b.y < -b.radius - 20) {
             bubbles.splice(i, 1);
             continue;
           }
 
-          const alpha = Math.max(0, Math.min(0.75, b.life * 0.78));
+          const progress = Math.max(0, b.life / b.maxLife);
+          const horizonFade = Math.max(0, Math.min(1, b.y / (vh * 0.28)));
+          const alpha = Math.min(1, progress * 1.45) * horizonFade;
+          if (alpha <= 0.01) continue;
+
+          // Crisp glass orb rim + subtle translucent fill (NO hazy smoke blur)
           ctx.beginPath();
           ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
           ctx.fillStyle = b.onFlood
-            ? `rgba(255, 255, 255, ${(alpha * 0.35).toFixed(3)})`
-            : `rgba(2, 88, 255, ${(alpha * 0.28).toFixed(3)})`;
+            ? `rgba(255, 255, 255, ${(alpha * 0.18).toFixed(3)})`
+            : b.isAccent
+              ? `rgba(2, 88, 255, ${(alpha * 0.16).toFixed(3)})`
+              : `rgba(92, 154, 255, ${(alpha * 0.12).toFixed(3)})`;
           ctx.fill();
 
+          ctx.lineWidth = b.held ? 2 : 1.35;
           ctx.strokeStyle = b.onFlood
-            ? `rgba(255, 255, 255, ${(alpha * 0.8).toFixed(3)})`
-            : `rgba(92, 154, 255, ${(alpha * 0.75).toFixed(3)})`;
-          ctx.lineWidth = 1;
+            ? `rgba(255, 255, 255, ${(alpha * 0.92).toFixed(3)})`
+            : b.isAccent
+              ? `rgba(2, 88, 255, ${(alpha * 0.94).toFixed(3)})`
+              : `rgba(92, 154, 255, ${(alpha * 0.78).toFixed(3)})`;
           ctx.stroke();
+
+          // Sharp tiny glass crescent specular arc (top-left of orb)
+          if (b.radius >= 8) {
+            ctx.beginPath();
+            ctx.arc(
+              b.x,
+              b.y,
+              Math.max(2, b.radius - 3.5),
+              -Math.PI * 0.82,
+              -Math.PI * 0.38
+            );
+            ctx.lineWidth = 1.1;
+            ctx.strokeStyle = b.onFlood
+              ? `rgba(255, 255, 255, ${(alpha * 0.8).toFixed(3)})`
+              : `rgba(244, 244, 238, ${(alpha * 0.65).toFixed(3)})`;
+            ctx.stroke();
+          }
+
+          // Floating editorial character glyph centered cleanly inside primary orb
+          if (b.label && b.radius >= 12) {
+            ctx.fillStyle = b.onFlood
+              ? `rgba(255, 255, 255, ${alpha.toFixed(3)})`
+              : `rgba(2, 88, 255, ${alpha.toFixed(3)})`;
+            const fontSize = Math.round(Math.max(11, Math.min(24, b.radius * 0.85)));
+            ctx.font = `italic 400 ${fontSize}px "Instrument Serif", Georgia, serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(b.label, b.x, b.y + 0.5);
+          }
         }
 
-        if (bars.length > 0 || bubbles.length > 0 || flares.length > 0) {
+        if (bubbles.length > 0) {
           rafId = window.requestAnimationFrame(render);
         } else {
           rafId = 0;
@@ -452,7 +351,6 @@ export function SynthesiaWaterfall({
       }
 
       markTypingBurst();
-
       if (event.repeat) return;
 
       const now = performance.now();
@@ -465,82 +363,90 @@ export function SynthesiaWaterfall({
       }
 
       timestampsRef.current.push(now);
-      const nextWpm = computeWpm(now);
-
-      setWpm(nextWpm);
+      setWpm(computeWpm(now));
       setHudVisible(true);
       setPulseTick((n) => n + 1);
-      setTicker((prev) => {
-        const appended = isEnter ? "↵ " : event.key;
-        return (prev + appended).slice(-18);
-      });
+      setTicker((prev) => (prev + (isEnter ? "↵ " : event.key)).slice(-18));
       scheduleHudHide();
 
-      const { normX, width, label } = getKeyLayout(event.key);
+      const { normX, label } = getColumnNorm(event.key);
       const x = normX * window.innerWidth;
-      const h = window.innerHeight;
+      const y = window.innerHeight - 28;
       const onFlood = portalFloodRef.current;
 
       // Feed 5-channel Hero Slice Visualizer
       dispatchSynthSlice(Math.min(4, Math.max(0, Math.floor(normX * 5))));
 
-      const bar: NoteBar = {
-        id: ++noteSeq,
+      // Main primary glyph bubble (inflates while key is held)
+      const primaryRadius = event.key === " " ? 24 : 18 + Math.random() * 5;
+      const mainBubble: KineticBubble = {
+        id: ++bubbleSeq,
         code: event.code,
         label,
         x,
-        width,
-        topY: h - 12,
-        bottomY: h,
+        y,
+        radius: 10,
+        targetRadius: primaryRadius,
+        vy: 155 + Math.random() * 75,
+        wobblePhase: Math.random() * Math.PI * 2,
+        wobbleSpeed: 2.2 + Math.random() * 1.6,
+        wobbleAmp: 22 + Math.random() * 24,
+        life: 3.1,
+        maxLife: 3.1,
         held: true,
+        isAccent: true,
         onFlood,
       };
-      barsRef.current.push(bar);
-      heldByCodeRef.current.set(event.code, bar);
+      bubblesRef.current.push(mainBubble);
+      heldByCodeRef.current.set(event.code, mainBubble);
 
-      flaresRef.current.push({
-        x,
-        width,
-        life: 1,
-        onFlood,
-      });
-
-      const bubbleCount = event.key === " " ? 5 : 3;
-      for (let i = 0; i < bubbleCount; i += 1) {
+      // 2-3 companion crisp satellite micro-bubbles
+      const satelliteCount = event.key === " " ? 4 : 2;
+      for (let i = 0; i < satelliteCount; i += 1) {
+        const satRadius = 3.5 + Math.random() * 5.5;
         bubblesRef.current.push({
-          x: x + (Math.random() - 0.5) * (width + 18),
-          y: h - 6 - Math.random() * 14,
-          radius: 2.4 + Math.random() * 4.4,
-          vy: 140 + Math.random() * 130,
+          id: ++bubbleSeq,
+          code: "",
+          label: "",
+          x: x + (Math.random() - 0.5) * 44,
+          y: y + (Math.random() - 0.5) * 14,
+          radius: satRadius,
+          targetRadius: satRadius,
+          vy: 195 + Math.random() * 120,
           wobblePhase: Math.random() * Math.PI * 2,
-          wobbleAmp: 18 + Math.random() * 26,
-          life: 0.9 + Math.random() * 0.55,
+          wobbleSpeed: 3 + Math.random() * 2.2,
+          wobbleAmp: 28 + Math.random() * 28,
+          life: 1.8 + Math.random() * 0.9,
+          maxLife: 2.7,
+          held: false,
+          isAccent: false,
           onFlood,
         });
       }
 
-      studioSound.playNote(normX);
+      studioSound.playTypeThock(normX, event.key === " " || isEnter);
       if (isPrintable) {
         checkSecretKeyword(event.key);
       }
       ensureLoop();
     };
 
-    const releaseKey = (code: string) => {
+    const releaseBubble = (code: string) => {
       const held = heldByCodeRef.current.get(code);
       if (held) {
         held.held = false;
+        held.targetRadius = Math.max(held.targetRadius, held.radius);
         heldByCodeRef.current.delete(code);
       }
     };
 
     const onKeyUp = (event: KeyboardEvent) => {
-      releaseKey(event.code);
+      releaseBubble(event.code);
     };
 
     const releaseAll = () => {
-      heldByCodeRef.current.forEach((bar) => {
-        bar.held = false;
+      heldByCodeRef.current.forEach((b) => {
+        b.held = false;
       });
       heldByCodeRef.current.clear();
     };
@@ -590,7 +496,7 @@ export function SynthesiaWaterfall({
         </AnimatePresence>
       </div>
 
-      {/* Minimalist auto-hiding WPM + Live Synth Ticker Pill */}
+      {/* Minimalist auto-hiding WPM + Live Ticker Pill */}
       <AnimatePresence>
         {hudVisible && (
           <motion.div
