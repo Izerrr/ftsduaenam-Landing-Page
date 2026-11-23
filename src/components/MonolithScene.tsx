@@ -9,58 +9,57 @@ import {
 } from "motion/react";
 import { ArrowDownIcon } from "@phosphor-icons/react/ArrowDown";
 import { IDENTITY } from "@/data/services";
-import { VoidCanvas } from "@/components/VoidCanvas";
-import { ScrambleText } from "@/components/ScrambleText";
+import { SignatureDraw } from "@/components/SignatureDraw";
 
 const ENTER_SPRING = {
   type: "spring" as const,
-  stiffness: 140,
+  stiffness: 180,
   damping: 26,
 };
 
-const HIDDEN_WHISPERS = [
-  "VIKOLVERE  ·  VERIVELA  ·  DO NOT LOOK AWAY  ·  XXVI  ·  VIKOLVERE  ·  VERIVELA",
-  "BEHIND THE GLASS  ·  FATISDA UNS  ·  IT IS ALREADY OPEN  ·  FTSDUAENAM  ·  XXVI",
-  "SILENCE BEFORE ENTRY  ·  VIKOLVERE  ·  VERIVELA  ·  ONLY ONE DOOR  ·  XXVI",
-  "FATISDA UNS  ·  XXVI  ·  OBSERVED  ·  DO NOT LOOK AWAY  ·  FTSDUAENAM.WEB.ID",
-  "VIKOLVERE  ·  VERIVELA  ·  STEP THROUGH  ·  XXVI  ·  BEHIND THE GLASS",
-];
+const SLICE_OFFSETS = [-1.4, -0.7, 0, 0.7, 1.4];
 
 /**
- * Scene I: THE MONOLITH (Pitch Abyss #060607)
- * Uncanny dark chamber where a pointer-following cold beam silently unveils hidden inscriptions
- * in the shadows, framing haunted split-monolith typography ("FTS / .web.id / DUAENAM") that parts
- * as a stark sterile horizontal light-slit opens into Scene II.
+ * Scene 01: HERO MONOLITH (Deep Charcoal #111112)
+ * Inspired by landonorris.com:
+ * - Interactive 5-slice focal "26" kinetic centerpiece shifting smoothly with pointer position
+ * - Animated Electric Cobalt SVG signature draw
+ * - Massive split-voice FTS / .web.id / DUAENAM typography
+ * - Scroll-docking transform opening into a warm off-white (#F4F4EE) rounded-to-full-screen panel
  */
 export function MonolithScene() {
   const trackRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const prefersReduced = Boolean(useReducedMotion());
 
+  // Continuous pointer tracking via MotionValue + Spring (zero React re-renders)
   const rawX = useMotionValue(0);
   const rawY = useMotionValue(0);
-  const parallaxX = useSpring(rawX, { stiffness: 90, damping: 22 });
-  const parallaxY = useSpring(rawY, { stiffness: 90, damping: 22 });
-  const inverseX = useTransform(parallaxX, (v) => -v * 0.55);
-  const inverseY = useTransform(parallaxY, (v) => -v * 0.55);
-  const echoX = useTransform(parallaxX, (v) => v * 0.42);
-  const echoY = useTransform(parallaxY, (v) => v * 0.42);
+  const smoothX = useSpring(rawX, { stiffness: 120, damping: 22 });
+  const smoothY = useSpring(rawY, { stiffness: 120, damping: 22 });
+  const sliceShift = useTransform(smoothX, [-1, 1], [-18, 18]);
+  const domainX = useTransform(smoothX, [-1, 1], [-22, 22]);
+  const domainY = useTransform(smoothY, [-1, 1], [-14, 14]);
+  const inverseX = useTransform(smoothX, [-1, 1], [12, -12]);
+  const inverseY = useTransform(smoothY, [-1, 1], [8, -8]);
 
   const { scrollYProgress } = useScroll({
     target: trackRef,
     offset: ["start start", "end start"],
   });
 
-  // Uncanny slow parting as the visitor descends
+  // Scroll-linked focal transforms
   const topLineX = useTransform(scrollYProgress, [0, 0.62], ["0%", "-14%"]);
   const bottomLineX = useTransform(scrollYProgress, [0, 0.62], ["0%", "14%"]);
-  const wordScale = useTransform(scrollYProgress, [0, 0.68], [1, 1.14]);
-  const wordOpacity = useTransform(scrollYProgress, [0.34, 0.66], [1, 0]);
-  const domainScale = useTransform(scrollYProgress, [0, 0.62], [1, 1.36]);
+  const heroScale = useTransform(scrollYProgress, [0, 0.68], [1, 1.12]);
+  const heroOpacity = useTransform(scrollYProgress, [0.36, 0.68], [1, 0]);
+  const monolithScale = useTransform(scrollYProgress, [0, 0.65], [1, 0.84]);
+  const monolithRotate = useTransform(scrollYProgress, [0, 0.65], [0, -4]);
 
-  // Horizontal waking light-slit opening into the blinding sterile bone room (Scene II)
-  const slitScaleY = useTransform(scrollYProgress, [0.48, 0.96], [0.004, 1]);
-  const slitOpacity = useTransform(scrollYProgress, [0.42, 0.54], [0, 1]);
+  // Iconic Lando Norris rounded card expanding seamlessly into Scene 02's full warm canvas
+  const portalScale = useTransform(scrollYProgress, [0.46, 0.96], [0.16, 1.04]);
+  const portalRadius = useTransform(scrollYProgress, [0.46, 0.9], [44, 0]);
+  const portalOpacity = useTransform(scrollYProgress, [0.42, 0.56], [0, 1]);
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (prefersReduced || !stageRef.current) return;
@@ -71,8 +70,8 @@ export function MonolithScene() {
     stageRef.current.style.setProperty("--mx", `${(relX * 100).toFixed(2)}%`);
     stageRef.current.style.setProperty("--my", `${(relY * 100).toFixed(2)}%`);
 
-    rawX.set((relX - 0.5) * 30);
-    rawY.set((relY - 0.5) * 20);
+    rawX.set((relX - 0.5) * 2);
+    rawY.set((relY - 0.5) * 2);
   };
 
   const handlePointerLeave = () => {
@@ -86,8 +85,8 @@ export function MonolithScene() {
       id="monolith"
       data-scene="monolith"
       data-theme="dark"
-      className={`relative bg-[#060607] text-[#F2F2EE] ${
-        prefersReduced ? "min-h-[100dvh]" : "min-h-[192dvh]"
+      className={`relative bg-[#111112] text-[#F4F4EE] ${
+        prefersReduced ? "min-h-[100dvh]" : "min-h-[188dvh]"
       }`}
     >
       <div
@@ -96,157 +95,200 @@ export function MonolithScene() {
         onPointerLeave={handlePointerLeave}
         className="sticky top-0 flex h-[100dvh] w-full flex-col items-center justify-center overflow-hidden px-4 sm:px-8"
       >
-        {/* Ambient abyssal dust motes & hypnotic eclipse ripples */}
-        <VoidCanvas intensity="high" />
-
-        {/* Hidden inscriptions lurking in pitch darkness, unveiled only inside pointer torch */}
+        {/* Subtle studio cobalt spotlight */}
         <div
           aria-hidden="true"
-          className="torch-reveal-mask pointer-events-none absolute inset-0 flex flex-col justify-between overflow-hidden py-16 opacity-65 select-none"
+          className="hero-spotlight pointer-events-none absolute inset-0"
+        />
+
+        {/* Lando-style Interactive 5-Slice Focal "26" Visual Card behind headline */}
+        <motion.div
+          aria-hidden="true"
+          style={
+            prefersReduced
+              ? undefined
+              : {
+                  scale: monolithScale,
+                  rotate: monolithRotate,
+                  opacity: heroOpacity,
+                }
+          }
+          className="pointer-events-none absolute inset-0 flex items-center justify-center"
         >
-          {HIDDEN_WHISPERS.map((line, idx) => (
-            <p
-              key={idx}
-              className="whitespace-nowrap font-editorial text-xl italic tracking-[0.34em] text-[#F2F2EE]/45 sm:text-2xl"
-              style={{ transform: `translateX(${idx % 2 === 0 ? "-4%" : "-12%"})` }}
-            >
-              {line}
-            </p>
-          ))}
-        </div>
+          <div className="relative grid h-[min(64vh,460px)] w-[min(86vw,540px)] grid-cols-5 gap-1.5 sm:gap-2">
+            {SLICE_OFFSETS.map((factor, idx) => (
+              <SliceColumn
+                key={idx}
+                index={idx}
+                factor={factor}
+                sliceShift={sliceShift}
+                prefersReduced={prefersReduced}
+              />
+            ))}
+          </div>
+        </motion.div>
 
-        {/* Eerie cold cobalt/bone pointer torch */}
-        <div
-          aria-hidden="true"
-          className="abyss-torch pointer-events-none absolute inset-0"
-        />
-
-        {/* Deep claustrophobic cinema vignette */}
-        <div
-          aria-hidden="true"
-          className="abyss-vignette pointer-events-none absolute inset-0"
-        />
-
-        {/* Centerpiece Haunted Monolith Typography */}
+        {/* Centerpiece Split-Voice Typography */}
         <motion.div
           style={
             prefersReduced
               ? undefined
               : {
-                  scale: wordScale,
-                  opacity: wordOpacity,
+                  scale: heroScale,
+                  opacity: heroOpacity,
                 }
           }
           className="relative z-10 flex w-full max-w-[1440px] flex-col items-center text-center select-none"
         >
-          <p className="mb-6 font-editorial text-sm italic tracking-[0.3em] text-[#9B9B96] sm:mb-8 sm:text-base">
-            <ScrambleText text={IDENTITY.facultyCode.toLowerCase()} />
-          </p>
+          <div className="mb-5 flex items-center gap-3 sm:mb-7">
+            <span className="font-condensed text-xs font-bold tracking-[0.22em] uppercase text-[#A1A19C] sm:text-sm">
+              {IDENTITY.faculty}
+            </span>
+          </div>
 
           <h1
             id="konten-utama"
             tabIndex={-1}
             className="relative flex flex-col items-center focus:outline-none"
           >
-            {/* Top half with subtle drifting ghost echo */}
+            {/* Top wordmark blade */}
             <motion.span
               style={prefersReduced ? undefined : { x: inverseX, y: inverseY }}
-              className="relative block"
+              className="block"
             >
-              {!prefersReduced && (
-                <motion.span
-                  aria-hidden="true"
-                  style={{ x: echoX, y: echoY }}
-                  className="pointer-events-none absolute inset-0 font-condensed text-[clamp(3.9rem,1.8rem+11.5vw,8.4rem)] leading-[0.8] font-extrabold tracking-[-0.04em] uppercase text-[#0258FF]/30 blur-[1.5px] md:text-[clamp(7rem,2.4rem+11.5vw,15.2rem)]"
-                >
-                  FTS
-                </motion.span>
-              )}
               <motion.span
-                initial={prefersReduced ? false : { y: 40, opacity: 0 }}
+                initial={prefersReduced ? false : { y: 44, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ ...ENTER_SPRING, delay: 0.52 }}
+                transition={{ ...ENTER_SPRING, delay: 0.04 }}
                 style={prefersReduced ? undefined : { x: topLineX }}
-                className="relative block font-condensed text-[clamp(3.9rem,1.8rem+11.5vw,8.4rem)] leading-[0.8] font-extrabold tracking-[-0.04em] uppercase text-[#F2F2EE] md:text-[clamp(7rem,2.4rem+11.5vw,15.2rem)]"
+                className="block font-condensed text-[clamp(3.9rem,1.8rem+11.5vw,8.4rem)] leading-[0.8] font-extrabold tracking-[-0.04em] uppercase text-[#F4F4EE] md:text-[clamp(7rem,2.4rem+11.5vw,15.2rem)]"
               >
                 FTS
               </motion.span>
             </motion.span>
 
-            {/* Razor eerie serif domain suspended between the blades */}
+            {/* Dimensional editorial serif domain */}
             <motion.span
               initial={prefersReduced ? false : { scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ ...ENTER_SPRING, delay: 0.65 }}
-              style={
-                prefersReduced
-                  ? undefined
-                  : { x: parallaxX, y: parallaxY, scale: domainScale }
-              }
-              className="relative z-20 -my-2 block pb-1 font-editorial text-[clamp(2.5rem,1.2rem+6.2vw,5.2rem)] leading-[1.02] italic tracking-[-0.015em] text-[#0258FF] ghost-echo-cobalt sm:-my-4 md:text-[clamp(4.2rem,1.8rem+5.6vw,8.6rem)]"
+              transition={{ ...ENTER_SPRING, delay: 0.14 }}
+              style={prefersReduced ? undefined : { x: domainX, y: domainY }}
+              className="relative z-20 -my-2 block pb-1 font-editorial text-[clamp(2.5rem,1.2rem+6.2vw,5.2rem)] leading-[1.02] italic tracking-[-0.02em] text-[#0258FF] sm:-my-4 md:text-[clamp(4.2rem,1.8rem+5.6vw,8.6rem)]"
             >
               .web.id
             </motion.span>
 
-            {/* Bottom half with subtle drifting ghost echo */}
+            {/* Bottom wordmark blade */}
             <motion.span
               style={prefersReduced ? undefined : { x: inverseX, y: inverseY }}
-              className="relative block"
+              className="block"
             >
-              {!prefersReduced && (
-                <motion.span
-                  aria-hidden="true"
-                  style={{ x: echoX, y: echoY }}
-                  className="pointer-events-none absolute inset-0 font-condensed text-[clamp(3.9rem,1.8rem+11.5vw,8.4rem)] leading-[0.8] font-extrabold tracking-[-0.04em] uppercase text-[#0258FF]/30 blur-[1.5px] md:text-[clamp(7rem,2.4rem+11.5vw,15.2rem)]"
-                >
-                  DUAENAM
-                </motion.span>
-              )}
               <motion.span
-                initial={prefersReduced ? false : { y: 40, opacity: 0 }}
+                initial={prefersReduced ? false : { y: 44, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ ...ENTER_SPRING, delay: 0.58 }}
+                transition={{ ...ENTER_SPRING, delay: 0.1 }}
                 style={prefersReduced ? undefined : { x: bottomLineX }}
-                className="relative block font-condensed text-[clamp(3.9rem,1.8rem+11.5vw,8.4rem)] leading-[0.8] font-extrabold tracking-[-0.04em] uppercase text-[#F2F2EE] md:text-[clamp(7rem,2.4rem+11.5vw,15.2rem)]"
+                className="block font-condensed text-[clamp(3.9rem,1.8rem+11.5vw,8.4rem)] leading-[0.8] font-extrabold tracking-[-0.04em] uppercase text-[#F4F4EE] md:text-[clamp(7rem,2.4rem+11.5vw,15.2rem)]"
               >
                 DUAENAM
               </motion.span>
             </motion.span>
           </h1>
 
-          <p className="mt-7 font-editorial text-sm italic tracking-[0.26em] text-[#9B9B96] sm:mt-9 sm:text-base">
-            <ScrambleText text="vikolvere · verivela" />
-          </p>
+          {/* Signature SVG vector draw underneath wordmark */}
+          <div className="mt-4 sm:mt-6">
+            <SignatureDraw
+              trigger="mount"
+              stroke="#0258FF"
+              className="h-10 w-auto sm:h-12 md:h-14"
+            />
+          </div>
         </motion.div>
 
-        {/* Quiet eerie descent link */}
+        {/* Tactile scroll pill */}
         <motion.a
           href="#portal"
-          data-cursor="below"
-          style={prefersReduced ? undefined : { opacity: wordOpacity }}
-          className="group relative z-20 mt-10 inline-flex min-h-[44px] flex-col items-center justify-center gap-1.5 px-4 font-editorial text-xs italic tracking-[0.28em] text-[#9B9B96] transition-colors hover:text-[#F2F2EE] sm:mt-12"
+          style={prefersReduced ? undefined : { opacity: heroOpacity }}
+          className="group relative z-20 mt-6 inline-flex min-h-[44px] items-center gap-2 rounded-full border border-white/20 bg-[#1A1B18]/80 px-5 font-condensed text-xs font-bold tracking-[0.2em] uppercase text-[#F4F4EE] backdrop-blur-sm transition-colors hover:border-[#0258FF] hover:bg-[#0258FF] sm:mt-8"
         >
-          <span>step inside</span>
+          <span>SCROLL</span>
           <ArrowDownIcon
             size={14}
-            weight="regular"
+            weight="bold"
             aria-hidden="true"
-            className="transition-transform duration-300 group-hover:translate-y-1"
+            className="transition-transform duration-200 group-hover:translate-y-1"
           />
         </motion.a>
 
-        {/* Blinding sterile bone horizontal light-slit opening smoothly into Scene II */}
+        {/* Rounded warm bone card expanding smoothly to full screen into Scene 02 */}
         {!prefersReduced && (
           <motion.div
             aria-hidden="true"
             style={{
-              scaleY: slitScaleY,
-              opacity: slitOpacity,
+              scale: portalScale,
+              borderRadius: portalRadius,
+              opacity: portalOpacity,
             }}
-            className="pointer-events-none absolute inset-0 z-30 origin-center border-y border-[#0258FF] bg-[#EAE8E1]"
+            className="pointer-events-none absolute inset-0 z-30 origin-center bg-[#F4F4EE]"
           />
         )}
       </div>
     </section>
+  );
+}
+
+interface SliceColumnProps {
+  index: number;
+  factor: number;
+  sliceShift: ReturnType<typeof useTransform<number, number>>;
+  prefersReduced: boolean;
+}
+
+function SliceColumn({
+  index,
+  factor,
+  sliceShift,
+  prefersReduced,
+}: SliceColumnProps) {
+  const y = useTransform(sliceShift, (v) => v * factor);
+  const isAccentSlice = index === 2;
+
+  return (
+    <motion.div
+      style={prefersReduced ? undefined : { y }}
+      className={`relative overflow-hidden rounded-2xl border ${
+        isAccentSlice
+          ? "border-[#0258FF]/45 bg-[#1A1B18]"
+          : "border-white/[0.08] bg-[#161715]"
+      }`}
+    >
+      {/* Subtle diagonal racing ribbon slicing across the 5 panels */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: isAccentSlice
+            ? "linear-gradient(155deg, rgba(2,88,255,0.22) 0%, rgba(2,88,255,0.03) 58%, transparent 100%)"
+            : "linear-gradient(155deg, rgba(244,244,238,0.05) 0%, transparent 60%)",
+        }}
+      />
+
+      {/* Sliced giant 26 backdrop synced horizontally across all 5 columns */}
+      <div
+        className="absolute inset-y-0 flex items-center justify-center"
+        style={{
+          width: "500%",
+          left: `${-index * 100}%`,
+        }}
+      >
+        <span className="font-condensed text-[clamp(14rem,34vw,24rem)] leading-none font-extrabold tracking-[-0.06em] text-white/[0.06]">
+          26
+        </span>
+      </div>
+
+      {/* Hairline index marker inside each slice */}
+      <span className="absolute bottom-3 left-3 font-mono text-[10px] tracking-[0.14em] text-white/25">
+        0{index + 1}
+      </span>
+    </motion.div>
   );
 }

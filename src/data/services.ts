@@ -9,17 +9,18 @@ export const URLS = {
 } as const;
 
 export const IDENTITY = {
+  monogram: "FTS26",
   brand: "ftsduaenam",
   domain: "ftsduaenam.web.id",
-  cohortCode: "VIKOLVERE · VERIVELA · XXVI",
-  facultyCode: "FATISDA · UNS · XXVI",
+  cohort: "VIKOLVERE · VERIVELA",
+  faculty: "FATISDA UNS · 2026",
 } as const;
 
 export type SceneId = "monolith" | "portal" | "signal";
 
 export interface SceneMeta {
   id: SceneId;
-  roman: string;
+  index: string;
   label: string;
   href: `#${SceneId}`;
   theme: "dark" | "light";
@@ -28,21 +29,21 @@ export interface SceneMeta {
 export const SCENES: readonly SceneMeta[] = [
   {
     id: "monolith",
-    roman: "I",
+    index: "01",
     label: "FTSDUAENAM",
     href: "#monolith",
     theme: "dark",
   },
   {
     id: "portal",
-    roman: "II",
+    index: "02",
     label: "TASKPANEL",
     href: "#portal",
     theme: "light",
   },
   {
     id: "signal",
-    roman: "III",
+    index: "03",
     label: "CONTACT",
     href: "#signal",
     theme: "dark",

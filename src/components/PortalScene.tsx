@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   motion,
   useMotionValue,
@@ -10,75 +10,81 @@ import {
 import { ArrowDownIcon } from "@phosphor-icons/react/ArrowDown";
 import { ArrowUpRightIcon } from "@phosphor-icons/react/ArrowUpRight";
 import { URLS } from "@/data/services";
-import { ScrambleText } from "@/components/ScrambleText";
 
 interface PortalSceneProps {
-  onEclipseChange: (active: boolean) => void;
+  onFloodChange: (active: boolean) => void;
 }
 
-const ECLIPSE_SPRING = {
+const FLOOD_SPRING = {
   type: "spring" as const,
-  stiffness: 200,
+  stiffness: 240,
   damping: 26,
 };
 
 /**
- * Scene II: THE DOOR (Sterile Pale Bone #EAE8E1 -> Sudden Abyssal Eclipse #060607)
- * Walking out of darkness into an unsettlingly stark, over-lit silent room with a giant
- * pointer-watching eclipse iris behind the sole threshold: TASKPANEL.
- * Hovering or focusing snaps the lights out into pitch abyss with cold cobalt luminescence.
+ * Scene 02: THE SINGLE PORTAL (Warm Off-White #F4F4EE -> Electric Cobalt #0258FF Flood)
+ * Inspired by landonorris.com:
+ * - Expansive warm bone editorial canvas with organic blob contour stroke rotating on scroll
+ * - Single monumental TASKPANEL gateway (no explanatory clutter)
+ * - Full-bleed Electric Cobalt flood + spring-lagged floating studio preview card following cursor
  */
-export function PortalScene({ onEclipseChange }: PortalSceneProps) {
+export function PortalScene({ onFloodChange }: PortalSceneProps) {
   const [engaged, setEngaged] = useState(false);
+  const [hasFinePointer, setHasFinePointer] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const triggerRef = useRef<HTMLAnchorElement>(null);
   const prefersReduced = Boolean(useReducedMotion());
+
+  useEffect(() => {
+    const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const sync = () => setHasFinePointer(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ["start end", "end start"],
   });
 
-  const outerRingRotate = useTransform(scrollYProgress, [0, 1], [-22, 22]);
-  const topWhisperX = useTransform(scrollYProgress, [0, 1], ["-5%", "8%"]);
-  const bottomWhisperX = useTransform(scrollYProgress, [0, 1], ["6%", "-8%"]);
+  const blobRotate = useTransform(scrollYProgress, [0, 1], [-18, 22]);
+  const topBandX = useTransform(scrollYProgress, [0, 1], ["-6%", "8%"]);
+  const bottomBandX = useTransform(scrollYProgress, [0, 1], ["6%", "-8%"]);
 
-  // Smooth slow-lag pupil tracking & subtle magnetic pull
-  const irisRawX = useMotionValue(0);
-  const irisRawY = useMotionValue(0);
-  const irisX = useSpring(irisRawX, { stiffness: 110, damping: 22 });
-  const irisY = useSpring(irisRawY, { stiffness: 110, damping: 22 });
-
+  // Magnetic headline pull
   const magX = useMotionValue(0);
   const magY = useMotionValue(0);
-  const smoothX = useSpring(magX, { stiffness: 190, damping: 24 });
-  const smoothY = useSpring(magY, { stiffness: 190, damping: 24 });
+  const smoothX = useSpring(magX, { stiffness: 200, damping: 24 });
+  const smoothY = useSpring(magY, { stiffness: 200, damping: 24 });
 
-  const setEclipse = (next: boolean) => {
+  // Spring-lagged cursor-following preview card (Lando Norris signature hover pattern)
+  const cardRawX = useMotionValue(0);
+  const cardRawY = useMotionValue(0);
+  const cardX = useSpring(cardRawX, { stiffness: 160, damping: 22, mass: 0.8 });
+  const cardY = useSpring(cardRawY, { stiffness: 160, damping: 22, mass: 0.8 });
+
+  const setPortalActive = (next: boolean) => {
     setEngaged(next);
-    onEclipseChange(next);
+    onFloodChange(next);
     if (!next) {
       magX.set(0);
       magY.set(0);
     }
   };
 
-  const handleSectionPointerMove = (event: React.PointerEvent<HTMLElement>) => {
-    if (prefersReduced || !sectionRef.current) return;
-    const rect = sectionRef.current.getBoundingClientRect();
-    const nx = (event.clientX - rect.left) / rect.width - 0.5;
-    const ny = (event.clientY - rect.top) / rect.height - 0.5;
-    irisRawX.set(nx * 36);
-    irisRawY.set(ny * 26);
-  };
+  const handlePointerMove = (event: React.PointerEvent<HTMLAnchorElement>) => {
+    if (prefersReduced || !triggerRef.current || !sectionRef.current) return;
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const sectionRect = sectionRef.current.getBoundingClientRect();
 
-  const handleTriggerPointerMove = (event: React.PointerEvent<HTMLAnchorElement>) => {
-    if (prefersReduced || !triggerRef.current) return;
-    const rect = triggerRef.current.getBoundingClientRect();
-    const dx = ((event.clientX - rect.left) / rect.width - 0.5) * 20;
-    const dy = ((event.clientY - rect.top) / rect.height - 0.5) * 14;
+    const dx = ((event.clientX - triggerRect.left) / triggerRect.width - 0.5) * 20;
+    const dy = ((event.clientY - triggerRect.top) / triggerRect.height - 0.5) * 14;
     magX.set(dx);
     magY.set(dy);
+
+    cardRawX.set(event.clientX - sectionRect.left + 24);
+    cardRawY.set(event.clientY - sectionRect.top - 58);
   };
 
   return (
@@ -87,105 +93,102 @@ export function PortalScene({ onEclipseChange }: PortalSceneProps) {
       id="portal"
       data-scene="portal"
       data-theme="light"
-      data-portal-eclipse={engaged ? "true" : "false"}
-      onPointerMove={handleSectionPointerMove}
-      className="relative flex min-h-[100dvh] w-full flex-col items-center justify-center overflow-hidden bg-[#EAE8E1] px-4 py-24 text-[#0B0B0C] sm:px-8"
+      data-portal-flood={engaged ? "true" : "false"}
+      className="relative flex min-h-[100dvh] w-full flex-col items-center justify-center overflow-hidden bg-[#F4F4EE] px-4 py-24 text-[#111112] sm:px-8"
     >
-      {/* Sudden Lights-Out Abyssal Eclipse layer on hover/focus */}
+      {/* Full-bleed Electric Cobalt flood sweep on hover/focus */}
       <motion.div
         aria-hidden="true"
         initial={false}
         animate={{
-          opacity: engaged ? 1 : 0,
+          scaleY: engaged ? 1 : 0,
         }}
-        transition={prefersReduced ? { duration: 0.12 } : { duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
-        className="pointer-events-none absolute inset-0 bg-[#060607]"
-      >
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(520px circle at 50% 50%, rgba(2, 88, 255, 0.26), rgba(2, 88, 255, 0.05) 45%, transparent 72%)",
-          }}
-        />
-      </motion.div>
+        transition={prefersReduced ? { duration: 0.12 } : FLOOD_SPRING}
+        style={{ transformOrigin: "50% 100%" }}
+        className="pointer-events-none absolute inset-0 bg-[#0258FF]"
+      />
 
-      {/* Giant Silent Watching Eclipse Iris behind the sole threshold */}
+      {/* Organic Lando-style vector blob contour rotating smoothly on scroll */}
+      <motion.svg
+        aria-hidden="true"
+        viewBox="0 0 640 640"
+        fill="none"
+        style={prefersReduced ? undefined : { rotate: blobRotate }}
+        className={`pointer-events-none absolute h-[min(86vw,640px)] w-[min(86vw,640px)] transition-colors duration-200 ${
+          engaged ? "text-white/20" : "text-[#111112]/10"
+        }`}
+      >
+        <path
+          d="M320 62C424 54 532 108 564 206C596 304 548 424 468 498C388 572 264 596 172 544C80 492 48 378 66 270C84 162 216 70 320 62Z"
+          stroke="currentColor"
+          strokeWidth="1.4"
+        />
+        <path
+          d="M320 116C398 112 484 156 508 232C532 308 494 402 432 458C370 514 274 532 204 492C134 452 108 364 122 280C136 196 242 120 320 116Z"
+          stroke="currentColor"
+          strokeWidth="1"
+          strokeDasharray="6 10"
+        />
+      </motion.svg>
+
+      {/* Scroll-driven top & bottom ghosted kinetic bands */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 flex items-center justify-center"
+        className={`pointer-events-none absolute inset-x-0 top-16 overflow-hidden py-2 transition-colors duration-200 sm:top-20 ${
+          engaged ? "text-white/15" : "text-[#111112]/[0.06]"
+        }`}
       >
-        <motion.svg
-          viewBox="0 0 720 720"
-          fill="none"
-          style={prefersReduced ? undefined : { rotate: outerRingRotate }}
-          className={`h-[min(88vw,680px)] w-[min(88vw,680px)] transition-colors duration-300 ${
-            engaged ? "text-[#F2F2EE]/18" : "text-[#0B0B0C]/12"
-          }`}
+        <motion.p
+          style={prefersReduced ? undefined : { x: topBandX }}
+          className="w-max font-condensed text-3xl font-extrabold tracking-[0.14em] uppercase sm:text-5xl"
         >
-          {/* Outer sharp eye-diamond outline */}
-          <path d="M40 360L360 140L680 360L360 580Z" stroke="currentColor" strokeWidth="1.2" />
-          <circle cx="360" cy="360" r="240" stroke="currentColor" strokeWidth="0.9" strokeDasharray="3 11" />
-          <circle cx="360" cy="360" r="142" stroke="currentColor" strokeWidth="1" />
-        </motion.svg>
+          TASKPANEL &middot; FTS26 &middot; WORKSPACE &middot; TASKPANEL &middot; FTS26 &middot; WORKSPACE &middot;
+        </motion.p>
+      </div>
 
-        {/* Pointer-tracking inner pupil slit */}
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-x-0 bottom-16 overflow-hidden py-2 transition-colors duration-200 sm:bottom-20 ${
+          engaged ? "text-white/15" : "text-[#111112]/[0.06]"
+        }`}
+      >
+        <motion.p
+          style={prefersReduced ? undefined : { x: bottomBandX }}
+          className="w-max font-condensed text-3xl font-extrabold tracking-[0.14em] uppercase sm:text-5xl"
+        >
+          FTSDUAENAM.WEB.ID &middot; 2026 &middot; FTSDUAENAM.WEB.ID &middot; 2026 &middot;
+        </motion.p>
+      </div>
+
+      {/* Spring-lagged floating studio preview pill following pointer on hover (Desktop) */}
+      {hasFinePointer && !prefersReduced && (
         <motion.div
-          style={prefersReduced ? undefined : { x: irisX, y: irisY }}
-          animate={
-            prefersReduced
-              ? undefined
-              : {
-                  scaleY: engaged ? 1.38 : 1,
-                  scaleX: engaged ? 0.55 : 1,
-                }
-          }
-          transition={ECLIPSE_SPRING}
-          className={`absolute h-36 w-12 rounded-full border transition-colors duration-300 sm:h-48 sm:w-16 ${
-            engaged
-              ? "border-[#0258FF]/70 bg-[#0258FF]/20"
-              : "border-[#0B0B0C]/15 bg-[#0B0B0C]/[0.04]"
-          }`}
-        />
-      </div>
-
-      {/* Subtle scroll-driven ghost whispers along upper & lower perimeter */}
-      <div
-        aria-hidden="true"
-        className={`pointer-events-none absolute inset-x-0 top-16 overflow-hidden py-2 transition-colors duration-300 sm:top-20 ${
-          engaged ? "text-[#F2F2EE]/[0.08]" : "text-[#0B0B0C]/[0.07]"
-        }`}
-      >
-        <motion.p
-          style={prefersReduced ? undefined : { x: topWhisperX }}
-          className="w-max font-editorial text-2xl italic tracking-[0.28em] sm:text-4xl"
+          aria-hidden="true"
+          style={{ x: cardX, y: cardY }}
+          initial={false}
+          animate={{
+            opacity: engaged ? 1 : 0,
+            scale: engaged ? 1 : 0.88,
+          }}
+          transition={{ duration: 0.18 }}
+          className="pointer-events-none absolute top-0 left-0 z-30 flex items-center gap-2.5 rounded-full border border-white/20 bg-[#111112] px-4 py-2 text-white shadow-xl"
         >
-          the only door &middot; taskpanel &middot; xxvi &middot; the only door &middot; taskpanel &middot; xxvi &middot;
-        </motion.p>
-      </div>
+          <span className="h-2 w-2 rounded-full bg-[#0258FF]" />
+          <span className="font-condensed text-xs font-bold tracking-[0.16em] uppercase whitespace-nowrap">
+            OPEN WORKSPACE
+          </span>
+          <ArrowUpRightIcon size={14} weight="bold" />
+        </motion.div>
+      )}
 
-      <div
-        aria-hidden="true"
-        className={`pointer-events-none absolute inset-x-0 bottom-16 overflow-hidden py-2 transition-colors duration-300 sm:bottom-20 ${
-          engaged ? "text-[#F2F2EE]/[0.08]" : "text-[#0B0B0C]/[0.07]"
-        }`}
-      >
-        <motion.p
-          style={prefersReduced ? undefined : { x: bottomWhisperX }}
-          className="w-max font-editorial text-2xl italic tracking-[0.28em] sm:text-4xl"
-        >
-          vikolvere &middot; verivela &middot; step inside &middot; vikolvere &middot; verivela &middot; step inside &middot;
-        </motion.p>
-      </div>
-
-      {/* Centerpiece sole monumental door: TASKPANEL */}
+      {/* Centerpiece Single Portal */}
       <div className="relative z-10 flex w-full max-w-[1440px] flex-col items-center text-center">
         <p
-          className={`mb-7 font-editorial text-sm italic tracking-[0.28em] transition-colors duration-300 sm:mb-9 sm:text-base ${
-            engaged ? "text-[#9B9B96]" : "text-[#474742]"
+          className={`mb-6 font-condensed text-xs font-bold tracking-[0.26em] uppercase transition-colors duration-200 sm:mb-8 sm:text-sm ${
+            engaged ? "text-white" : "text-[#4A4A45]"
           }`}
         >
-          ii &middot; the only door
+          02 / WORKSPACE
         </p>
 
         <motion.a
@@ -193,53 +196,26 @@ export function PortalScene({ onEclipseChange }: PortalSceneProps) {
           href={URLS.taskpanel}
           target="_blank"
           rel="noopener noreferrer"
-          data-cursor="enter"
-          onMouseEnter={() => setEclipse(true)}
-          onMouseLeave={() => setEclipse(false)}
-          onFocus={() => setEclipse(true)}
-          onBlur={() => setEclipse(false)}
-          onPointerMove={handleTriggerPointerMove}
-          whileTap={prefersReduced ? undefined : { scale: 0.985 }}
+          onMouseEnter={() => setPortalActive(true)}
+          onMouseLeave={() => setPortalActive(false)}
+          onFocus={() => setPortalActive(true)}
+          onBlur={() => setPortalActive(false)}
+          onPointerMove={handlePointerMove}
+          whileTap={prefersReduced ? undefined : { scale: 0.98 }}
           style={prefersReduced ? undefined : { x: smoothX, y: smoothY }}
-          className="group relative inline-flex max-w-full flex-col items-center px-6 py-7 no-underline sm:px-12 sm:py-9"
+          className="group relative inline-flex max-w-full flex-col items-center px-4 py-6 no-underline sm:px-10 sm:py-8"
         >
-          {/* Vertical razor threshold lines flanking the door */}
-          <motion.span
-            aria-hidden="true"
-            animate={
-              prefersReduced
-                ? undefined
-                : { x: engaged ? 0 : -14, opacity: engaged ? 1 : 0.35 }
-            }
-            transition={ECLIPSE_SPRING}
-            className={`pointer-events-none absolute top-3 bottom-3 left-0 w-[1.5px] transition-colors duration-300 ${
-              engaged ? "bg-[#0258FF]" : "bg-[#0B0B0C]"
-            }`}
-          />
-          <motion.span
-            aria-hidden="true"
-            animate={
-              prefersReduced
-                ? undefined
-                : { x: engaged ? 0 : 14, opacity: engaged ? 1 : 0.35 }
-            }
-            transition={ECLIPSE_SPRING}
-            className={`pointer-events-none absolute top-3 right-0 bottom-3 w-[1.5px] transition-colors duration-300 ${
-              engaged ? "bg-[#0258FF]" : "bg-[#0B0B0C]"
-            }`}
-          />
-
           <span className="flex flex-wrap items-baseline justify-center gap-x-2 sm:gap-x-4">
             <span
-              className={`font-condensed text-[clamp(3.3rem,1.6rem+10vw,7.4rem)] leading-[0.86] font-extrabold tracking-[-0.04em] uppercase transition-colors duration-300 md:text-[clamp(6rem,2.2rem+10vw,13.4rem)] ${
-                engaged ? "text-[#F2F2EE] ghost-echo-cobalt" : "text-[#0B0B0C]"
+              className={`font-condensed text-[clamp(3.3rem,1.6rem+10vw,7.4rem)] leading-[0.86] font-extrabold tracking-[-0.04em] uppercase transition-colors duration-200 md:text-[clamp(6rem,2.2rem+10vw,13.4rem)] ${
+                engaged ? "text-white" : "text-[#111112]"
               }`}
             >
               TASK
             </span>
             <span
-              className={`pb-2 font-editorial text-[clamp(3.5rem,1.7rem+10.5vw,7.8rem)] leading-[0.88] italic tracking-[-0.025em] transition-colors duration-300 md:text-[clamp(6.3rem,2.4rem+10.5vw,14rem)] ${
-                engaged ? "text-[#0258FF] ghost-echo-cobalt" : "text-[#004BE0]"
+              className={`pb-2 font-editorial text-[clamp(3.5rem,1.7rem+10.5vw,7.8rem)] leading-[0.88] italic tracking-[-0.025em] transition-colors duration-200 md:text-[clamp(6.3rem,2.4rem+10.5vw,14rem)] ${
+                engaged ? "text-white" : "text-[#004BE0]"
               }`}
             >
               PANEL
@@ -250,35 +226,53 @@ export function PortalScene({ onEclipseChange }: PortalSceneProps) {
                 prefersReduced
                   ? undefined
                   : {
-                      x: engaged ? 8 : 0,
-                      y: engaged ? -8 : 0,
+                      x: engaged ? 10 : 0,
+                      y: engaged ? -10 : 0,
+                      rotate: engaged ? 4 : 0,
                     }
               }
-              transition={ECLIPSE_SPRING}
-              className={`inline-flex self-center transition-colors duration-300 ${
-                engaged ? "text-[#F2F2EE]" : "text-[#0B0B0C]"
+              transition={FLOOD_SPRING}
+              className={`inline-flex self-center transition-colors duration-200 ${
+                engaged ? "text-white" : "text-[#111112]"
               }`}
             >
               <ArrowUpRightIcon
                 size={44}
-                weight="regular"
+                weight="bold"
                 className="h-9 w-9 sm:h-14 sm:w-14 md:h-20 md:w-20"
               />
             </motion.span>
           </span>
 
+          {/* Razor kinetic sweep hairline */}
           <span
-            className={`mt-5 font-condensed text-xs font-bold tracking-[0.26em] uppercase transition-colors duration-300 sm:text-sm ${
-              engaged ? "text-[#F2F2EE]" : "text-[#0B0B0C]"
+            aria-hidden="true"
+            className={`mt-3 block h-[2px] w-full transition-colors duration-200 ${
+              engaged ? "bg-white/35" : "bg-[#111112]/20"
             }`}
           >
-            <ScrambleText text="TASKPANEL.FTSDUAENAM.WEB.ID" />
+            <motion.span
+              initial={false}
+              animate={{ scaleX: engaged ? 1 : 0.22 }}
+              transition={prefersReduced ? { duration: 0.01 } : FLOOD_SPRING}
+              className={`block h-full w-full origin-left ${
+                engaged ? "bg-white" : "bg-[#0258FF]"
+              }`}
+            />
+          </span>
+
+          <span
+            className={`mt-5 font-condensed text-sm font-bold tracking-[0.2em] uppercase transition-colors duration-200 sm:text-base ${
+              engaged ? "text-white" : "text-[#111112]"
+            }`}
+          >
+            TASKPANEL.FTSDUAENAM.WEB.ID
           </span>
         </motion.a>
 
         <p
-          className={`mt-7 font-mono text-[11px] tracking-[0.16em] uppercase transition-colors duration-300 sm:text-xs ${
-            engaged ? "text-[#9B9B96]" : "text-[#474742]"
+          className={`mt-6 font-mono text-xs tracking-[0.14em] uppercase transition-colors duration-200 ${
+            engaged ? "text-white" : "text-[#4A4A45]"
           }`}
         >
           @student.uns.ac.id &middot; discord
@@ -286,19 +280,18 @@ export function PortalScene({ onEclipseChange }: PortalSceneProps) {
 
         <a
           href="#signal"
-          data-cursor="iii"
-          className={`group mt-10 inline-flex min-h-[44px] items-center gap-2 px-4 font-editorial text-xs italic tracking-[0.26em] transition-colors duration-300 ${
+          className={`group mt-10 inline-flex min-h-[44px] items-center gap-2 rounded-full px-4 font-condensed text-xs font-bold tracking-[0.2em] uppercase transition-colors duration-200 ${
             engaged
-              ? "text-[#9B9B96] hover:text-[#F2F2EE]"
-              : "text-[#474742] hover:text-[#0B0B0C]"
+              ? "text-white hover:bg-white/15"
+              : "text-[#4A4A45] hover:text-[#111112]"
           }`}
         >
-          <span>iii &middot; whisper</span>
+          <span>03 / CONTACT</span>
           <ArrowDownIcon
             size={14}
-            weight="regular"
+            weight="bold"
             aria-hidden="true"
-            className="transition-transform duration-300 group-hover:translate-y-1"
+            className="transition-transform duration-200 group-hover:translate-y-1"
           />
         </a>
       </div>
