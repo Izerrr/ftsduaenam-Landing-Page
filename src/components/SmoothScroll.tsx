@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Lenis from "lenis";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { studioSound } from "@/lib/studioSound";
+import { isTypingBurstActive } from "@/lib/sceneNavigation";
 
 const SCENE_SHORTCUTS: Record<string, { selector: string; index: string }> = {
   "1": { selector: "#monolith", index: "01" },
@@ -122,7 +123,7 @@ export function SmoothScroll() {
         return;
       }
       const shortcut = SCENE_SHORTCUTS[event.key];
-      if (shortcut) {
+      if (shortcut && !isTypingBurstActive()) {
         event.preventDefault();
         scrollToSelector(shortcut.selector);
       }

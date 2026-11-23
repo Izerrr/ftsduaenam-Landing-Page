@@ -202,6 +202,65 @@ class StudioSoundEngine {
       osc.stop(start + 0.12);
     });
   }
+
+  /** Warm pentatonic electric-piano note mapped to horizontal key position (0..1) */
+  playNote(normX: number) {
+    const ctx = this.getReadyContext();
+    if (!ctx) return;
+
+    const scale = [
+      293.66, // D4
+      349.23, // F4
+      392.0,  // G4
+      440.0,  // A4
+      523.25, // C5
+      587.33, // D5
+      698.46, // F5
+      783.99, // G5
+      880.0,  // A5
+      1046.5, // C6
+      1174.66, // D6
+    ];
+    const index = Math.max(
+      0,
+      Math.min(scale.length - 1, Math.round(normX * (scale.length - 1)))
+    );
+    const freq = scale[index];
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const overtone = ctx.createOscillator();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, now);
+
+    overtone.type = "triangle";
+    overtone.frequency.setValueAtTime(freq * 2, now);
+
+    const overtoneGain = ctx.createGain();
+    overtoneGain.gain.setValueAtTime(0.18, now);
+
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(2400, now);
+    filter.frequency.exponentialRampToValueAtTime(680, now + 0.35);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.055, now + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+
+    osc.connect(filter);
+    overtone.connect(overtoneGain);
+    overtoneGain.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    overtone.start(now);
+    osc.stop(now + 0.44);
+    overtone.stop(now + 0.44);
+  }
 }
 
 export const studioSound = new StudioSoundEngine();

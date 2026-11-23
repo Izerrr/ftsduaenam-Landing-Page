@@ -4,6 +4,8 @@ import { SmoothScroll } from "@/components/SmoothScroll";
 import { StudioPreloader } from "@/components/StudioPreloader";
 import { StudioCursor } from "@/components/StudioCursor";
 import { TopBar } from "@/components/TopBar";
+import { StudioDrawCanvas } from "@/components/StudioDrawCanvas";
+import { SynthesiaWaterfall } from "@/components/SynthesiaWaterfall";
 import { MonolithScene } from "@/components/MonolithScene";
 import { PortalScene } from "@/components/PortalScene";
 import { SignalScene } from "@/components/SignalScene";
@@ -36,6 +38,12 @@ export function App() {
           aria-hidden="true"
           className="studio-grain pointer-events-none fixed inset-0 z-30 opacity-[0.035]"
         />
+
+        {/* Freehand hold-and-drag Cobalt light brush */}
+        <StudioDrawCanvas portalFloodActive={portalFloodActive} />
+
+        {/* Synthesia keyboard waterfall, bubbles & live WPM */}
+        <SynthesiaWaterfall portalFloodActive={portalFloodActive} />
 
         <TopBar portalFloodActive={portalFloodActive} />
 

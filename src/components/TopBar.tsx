@@ -386,7 +386,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                   {IDENTITY.tagline}
                 </p>
                 <span className="hidden font-mono text-[11px] tracking-[0.14em] text-white/35 md:inline">
-                  KEYS 1 / 2 / 3
+                  KEYS 1 / 2 / 3 &middot; DRAG TO DRAW &middot; TYPE TO PLAY
                 </span>
               </div>
 
