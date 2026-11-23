@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { useRef, useState } from "react";
+import { motion, useReducedMotion, useScroll } from "motion/react";
 import { ArrowUpIcon } from "@phosphor-icons/react/ArrowUp";
 import { ArrowUpRightIcon } from "@phosphor-icons/react/ArrowUpRight";
 import { CheckIcon } from "@phosphor-icons/react/Check";
@@ -7,6 +7,8 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { IDENTITY, URLS } from "@/data/services";
 import { FtsLogo } from "@/components/FtsLogo";
 import { SignatureDraw } from "@/components/SignatureDraw";
+import { Magnetic } from "@/components/Magnetic";
+import { useScrollSkew } from "@/hooks/useScrollSkew";
 
 const HOVER_SPRING = {
   type: "spring" as const,
@@ -20,13 +22,20 @@ interface SignalSceneProps {
 
 /**
  * Scene 03: CONTACT & THREE-ZONE STUDIO FOOTER (Deep Charcoal #111112)
- * Inspired by landonorris.com's heavy-surface rounded card overlap & three-zone structured footer.
- * Synchronizes its outer shoulder backdrop (#F4F4EE <-> #0258FF) seamlessly with Scene 02's cobalt flood.
+ * Slides smoothly over Scene 02 with synchronized Electric Cobalt shoulder flood,
+ * scroll-scrubbed SVG signature draw, scroll-velocity skew, and magnetic studio pills.
  */
 export function SignalScene({ portalFloodActive }: SignalSceneProps) {
+  const footerRef = useRef<HTMLElement>(null);
   const [contactHovered, setContactHovered] = useState(false);
   const [copied, setCopied] = useState(false);
   const prefersReduced = Boolean(useReducedMotion());
+  const scrollSkew = useScrollSkew(2.4);
+
+  const { scrollYProgress } = useScroll({
+    target: footerRef,
+    offset: ["start end", "end end"],
+  });
 
   const handleCopyEmail = async () => {
     try {
@@ -46,7 +55,7 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
   };
 
   return (
-    <div className="relative -mt-px bg-[#F4F4EE]">
+    <div className="relative z-20 -mt-px bg-[#F4F4EE]">
       {/* Synchronized Electric Cobalt continuation behind the rounded top shoulders */}
       <motion.div
         aria-hidden="true"
@@ -61,6 +70,7 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
       />
 
       <footer
+        ref={footerRef}
         id="signal"
         data-scene="signal"
         data-theme="dark"
@@ -73,11 +83,14 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
           </p>
         </div>
 
-        {/* Centerpiece Signature Draw + Monumental CONTACT + Pill Actions */}
-        <div className="mx-auto my-auto flex w-full max-w-[1440px] flex-col items-center py-12 text-center">
+        {/* Centerpiece Scroll-Scrubbed Signature Draw + Monumental CONTACT + Magnetic Pill Actions */}
+        <motion.div
+          style={prefersReduced ? undefined : { skewY: scrollSkew }}
+          className="mx-auto my-auto flex w-full max-w-[1440px] flex-col items-center py-12 text-center"
+        >
           <div className="mb-3">
             <SignatureDraw
-              trigger="inView"
+              scrollProgress={scrollYProgress}
               stroke="#0258FF"
               className="h-10 w-auto sm:h-12"
             />
@@ -85,6 +98,7 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
 
           <motion.a
             href={URLS.email}
+            data-cursor="MAIL"
             onMouseEnter={() => setContactHovered(true)}
             onMouseLeave={() => setContactHovered(false)}
             onFocus={() => setContactHovered(true)}
@@ -130,38 +144,44 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
             </span>
           </motion.a>
 
-          {/* Studio Pill Action Row */}
+          {/* Magnetic Studio Pill Action Row */}
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-            <a
-              href={URLS.email}
-              className="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-[#F4F4EE] px-6 font-mono text-xs font-medium tracking-[0.04em] text-[#111112] transition-colors hover:bg-[#0258FF] hover:text-white active:scale-[0.98] sm:text-sm"
-            >
-              <span>{URLS.emailDisplay}</span>
-              <ArrowUpRightIcon size={16} weight="bold" aria-hidden="true" />
-            </a>
+            <Magnetic strength={0.2}>
+              <a
+                href={URLS.email}
+                data-cursor="MAIL"
+                className="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-[#F4F4EE] px-6 font-mono text-xs font-medium tracking-[0.04em] text-[#111112] transition-colors hover:bg-[#0258FF] hover:text-white active:scale-[0.98] sm:text-sm"
+              >
+                <span>{URLS.emailDisplay}</span>
+                <ArrowUpRightIcon size={16} weight="bold" aria-hidden="true" />
+              </a>
+            </Magnetic>
 
-            <button
-              type="button"
-              onClick={handleCopyEmail}
-              className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full border border-white/25 bg-transparent px-5 font-condensed text-xs font-extrabold tracking-[0.16em] uppercase text-[#F4F4EE] transition-colors hover:border-white hover:bg-white hover:text-[#111112] active:scale-[0.98]"
-            >
-              {copied ? (
-                <>
-                  <CheckIcon size={15} weight="bold" aria-hidden="true" />
-                  <span>COPIED</span>
-                </>
-              ) : (
-                <>
-                  <CopyIcon size={15} weight="bold" aria-hidden="true" />
-                  <span>COPY EMAIL</span>
-                </>
-              )}
-            </button>
+            <Magnetic strength={0.2}>
+              <button
+                type="button"
+                onClick={handleCopyEmail}
+                data-cursor={copied ? "COPIED" : "COPY"}
+                className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full border border-white/25 bg-transparent px-5 font-condensed text-xs font-extrabold tracking-[0.16em] uppercase text-[#F4F4EE] transition-colors hover:border-white hover:bg-white hover:text-[#111112] active:scale-[0.98]"
+              >
+                {copied ? (
+                  <>
+                    <CheckIcon size={15} weight="bold" aria-hidden="true" />
+                    <span>COPIED</span>
+                  </>
+                ) : (
+                  <>
+                    <CopyIcon size={15} weight="bold" aria-hidden="true" />
+                    <span>COPY EMAIL</span>
+                  </>
+                )}
+              </button>
+            </Magnetic>
             <span className="sr-only" aria-live="polite">
               {copied ? "Alamat email admin@ftsduaenam.web.id disalin." : ""}
             </span>
           </div>
-        </div>
+        </motion.div>
 
         {/* Three-Zone Structured Studio Footer */}
         <div className="mx-auto w-full max-w-[1440px] border-t border-white/15 pt-7">
@@ -179,7 +199,7 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
               {IDENTITY.tagline}
             </p>
 
-            {/* Zone 3: Direct Gateway & Legal + Circular Back-to-Top */}
+            {/* Zone 3: Direct Gateway & Legal + Circular Magnetic Back-to-Top */}
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 md:justify-end">
               <a
                 href={URLS.login}
@@ -205,14 +225,17 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
               >
                 TERMS
               </a>
-              <button
-                type="button"
-                onClick={scrollToTop}
-                aria-label="Kembali ke paling atas"
-                className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-white/25 text-[#F4F4EE] transition-colors hover:border-[#0258FF] hover:bg-[#0258FF] hover:text-white active:scale-95"
-              >
-                <ArrowUpIcon size={17} weight="bold" aria-hidden="true" />
-              </button>
+              <Magnetic strength={0.3}>
+                <button
+                  type="button"
+                  onClick={scrollToTop}
+                  data-cursor="TOP"
+                  aria-label="Kembali ke paling atas"
+                  className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-white/25 text-[#F4F4EE] transition-colors hover:border-[#0258FF] hover:bg-[#0258FF] hover:text-white active:scale-95"
+                >
+                  <ArrowUpIcon size={17} weight="bold" aria-hidden="true" />
+                </button>
+              </Magnetic>
             </div>
           </div>
         </div>

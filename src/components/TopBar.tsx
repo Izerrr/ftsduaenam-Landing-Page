@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowUpRightIcon } from "@phosphor-icons/react/ArrowUpRight";
 import { IDENTITY, SCENES, URLS, type SceneId } from "@/data/services";
 import { FtsLogo } from "@/components/FtsLogo";
+import { Magnetic } from "@/components/Magnetic";
 
 interface TopBarProps {
   portalFloodActive: boolean;
@@ -161,45 +162,51 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
 
           {/* Right: Direct TaskPanel pill + Lando-style circular Menu trigger */}
           <div className="pointer-events-auto flex items-center justify-self-end gap-2.5">
-            <a
-              href={URLS.taskpanel}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`hidden min-h-[44px] items-center gap-1.5 rounded-full px-5 font-condensed text-sm font-extrabold tracking-[0.1em] uppercase transition-all duration-200 active:scale-[0.97] sm:inline-flex ${ctaPill}`}
-            >
-              <span>TASKPANEL</span>
-              <ArrowUpRightIcon size={15} weight="bold" aria-hidden="true" />
-            </a>
-
-            <button
-              type="button"
-              onClick={() => setMenuOpen((prev) => !prev)}
-              aria-expanded={menuOpen}
-              aria-controls="fullscreen-studio-menu"
-              aria-label={menuOpen ? "Tutup menu" : "Buka menu"}
-              className={`inline-flex min-h-[44px] cursor-pointer items-center gap-2.5 rounded-full border px-4 font-condensed text-xs font-extrabold tracking-[0.16em] uppercase backdrop-blur-md transition-colors duration-200 active:scale-[0.97] ${menuBtnStyle}`}
-            >
-              <span>{menuOpen ? "CLOSE" : "MENU"}</span>
-              <span
-                aria-hidden="true"
-                className="relative flex h-3.5 w-4 flex-col items-center justify-center"
+            <Magnetic strength={0.22} className="hidden sm:inline-flex">
+              <a
+                href={URLS.taskpanel}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-cursor="OPEN"
+                className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-5 font-condensed text-sm font-extrabold tracking-[0.1em] uppercase transition-all duration-200 active:scale-[0.97] ${ctaPill}`}
               >
-                <motion.span
-                  animate={
-                    menuOpen ? { rotate: 45, y: 0 } : { rotate: 0, y: -3 }
-                  }
-                  transition={MENU_SPRING}
-                  className="absolute h-[1.8px] w-4 bg-current"
-                />
-                <motion.span
-                  animate={
-                    menuOpen ? { rotate: -45, y: 0 } : { rotate: 0, y: 3 }
-                  }
-                  transition={MENU_SPRING}
-                  className="absolute h-[1.8px] w-4 bg-current"
-                />
-              </span>
-            </button>
+                <span>TASKPANEL</span>
+                <ArrowUpRightIcon size={15} weight="bold" aria-hidden="true" />
+              </a>
+            </Magnetic>
+
+            <Magnetic strength={0.22}>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((prev) => !prev)}
+                aria-expanded={menuOpen}
+                aria-controls="fullscreen-studio-menu"
+                aria-label={menuOpen ? "Tutup menu" : "Buka menu"}
+                data-cursor={menuOpen ? "CLOSE" : "MENU"}
+                className={`inline-flex min-h-[44px] cursor-pointer items-center gap-2.5 rounded-full border px-4 font-condensed text-xs font-extrabold tracking-[0.16em] uppercase backdrop-blur-md transition-colors duration-200 active:scale-[0.97] ${menuBtnStyle}`}
+              >
+                <span>{menuOpen ? "CLOSE" : "MENU"}</span>
+                <span
+                  aria-hidden="true"
+                  className="relative flex h-3.5 w-4 flex-col items-center justify-center"
+                >
+                  <motion.span
+                    animate={
+                      menuOpen ? { rotate: 45, y: 0 } : { rotate: 0, y: -3 }
+                    }
+                    transition={MENU_SPRING}
+                    className="absolute h-[1.8px] w-4 bg-current"
+                  />
+                  <motion.span
+                    animate={
+                      menuOpen ? { rotate: -45, y: 0 } : { rotate: 0, y: 3 }
+                    }
+                    transition={MENU_SPRING}
+                    className="absolute h-[1.8px] w-4 bg-current"
+                  />
+                </span>
+              </button>
+            </Magnetic>
           </div>
         </div>
       </header>
@@ -259,9 +266,14 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
 
             {/* Bottom menu strip */}
             <div className="mx-auto flex w-full max-w-[1480px] flex-wrap items-center justify-between gap-4 pt-6 text-xs">
-              <p className="font-editorial text-sm italic text-[#A1A19C]">
-                {IDENTITY.tagline}
-              </p>
+              <div className="flex flex-wrap items-center gap-4">
+                <p className="font-editorial text-sm italic text-[#A1A19C]">
+                  {IDENTITY.tagline}
+                </p>
+                <span className="hidden font-mono text-[11px] tracking-[0.14em] text-white/35 md:inline">
+                  KEYS 1 / 2 / 3
+                </span>
+              </div>
 
               <div className="flex flex-wrap items-center gap-5">
                 <a

@@ -6,10 +6,13 @@ import {
   useScroll,
   useSpring,
   useTransform,
+  type MotionValue,
 } from "motion/react";
 import { ArrowDownIcon } from "@phosphor-icons/react/ArrowDown";
 import { IDENTITY } from "@/data/services";
 import { SignatureDraw } from "@/components/SignatureDraw";
+import { Magnetic } from "@/components/Magnetic";
+import { useScrollSkew } from "@/hooks/useScrollSkew";
 
 const ENTER_SPRING = {
   type: "spring" as const,
@@ -17,7 +20,7 @@ const ENTER_SPRING = {
   damping: 26,
 };
 
-const SLICE_OFFSETS = [-1.4, -0.7, 0, 0.7, 1.4];
+const SLICE_CENTERS = [0.1, 0.3, 0.5, 0.7, 0.9];
 
 interface MonolithSceneProps {
   portalFloodActive: boolean;
@@ -25,19 +28,28 @@ interface MonolithSceneProps {
 
 /**
  * Scene 01: HERO MONOLITH (Deep Charcoal #111112)
- * Dead-centered typographic monolith layered over an interactive 5-slice focal card,
- * SVG vector signature draw, and scroll-linked warm bone expansion synchronized with Scene 02.
+ * Dead-centered typographic monolith with scroll-velocity skew, interactive 5-slice tactile wave
+ * + 3D tilt, SVG vector signature draw, and synchronized scroll expansion into Scene 02.
  */
 export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
   const trackRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const prefersReduced = Boolean(useReducedMotion());
+  const scrollSkew = useScrollSkew(2.8);
 
-  // Pointer parallax kept strictly symmetric on Y-axis for slices & subtle vertical float
-  const rawY = useMotionValue(0);
-  const smoothY = useSpring(rawY, { stiffness: 120, damping: 22 });
-  const sliceShift = useTransform(smoothY, [-1, 1], [-14, 14]);
-  const domainY = useTransform(smoothY, [-1, 1], [-6, 6]);
+  // Normalized pointer tracking (0..1) via MotionValues + Springs (zero React re-renders)
+  const rawXNorm = useMotionValue(0.5);
+  const rawYNorm = useMotionValue(0.5);
+  const pointerActive = useMotionValue(0);
+
+  const smoothXNorm = useSpring(rawXNorm, { stiffness: 160, damping: 24 });
+  const smoothYNorm = useSpring(rawYNorm, { stiffness: 140, damping: 24 });
+  const smoothActive = useSpring(pointerActive, { stiffness: 180, damping: 24 });
+
+  // Subtle 3D perspective tilt on the 5-slice backdrop container
+  const tiltY = useTransform(smoothXNorm, [0, 1], [-4.5, 4.5]);
+  const tiltX = useTransform(smoothYNorm, [0, 1], [3.5, -3.5]);
+  const domainY = useTransform(smoothYNorm, [0, 1], [-6, 6]);
 
   const { scrollYProgress } = useScroll({
     target: trackRef,
@@ -51,7 +63,7 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
   const heroOpacity = useTransform(scrollYProgress, [0.36, 0.68], [1, 0]);
   const monolithScale = useTransform(scrollYProgress, [0, 0.65], [1, 0.84]);
 
-  // Rounded warm bone card expanding seamlessly into Scene 02
+  // Rounded transition panel synchronized with Scene 02
   const portalScale = useTransform(scrollYProgress, [0.46, 0.96], [0.16, 1.04]);
   const portalRadius = useTransform(scrollYProgress, [0.46, 0.9], [44, 0]);
   const portalOpacity = useTransform(scrollYProgress, [0.42, 0.56], [0, 1]);
@@ -59,17 +71,21 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (prefersReduced || !stageRef.current) return;
     const rect = stageRef.current.getBoundingClientRect();
-    const relX = (event.clientX - rect.left) / rect.width;
-    const relY = (event.clientY - rect.top) / rect.height;
+    const relX = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    const relY = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
 
     stageRef.current.style.setProperty("--mx", `${(relX * 100).toFixed(2)}%`);
     stageRef.current.style.setProperty("--my", `${(relY * 100).toFixed(2)}%`);
 
-    rawY.set((relY - 0.5) * 2);
+    rawXNorm.set(relX);
+    rawYNorm.set(relY);
+    pointerActive.set(1);
   };
 
   const handlePointerLeave = () => {
-    rawY.set(0);
+    rawXNorm.set(0.5);
+    rawYNorm.set(0.5);
+    pointerActive.set(0);
   };
 
   return (
@@ -94,7 +110,7 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
           className="hero-spotlight pointer-events-none absolute inset-0"
         />
 
-        {/* Centered Interactive 5-Slice Focal "26" Backdrop */}
+        {/* Centered Interactive 5-Slice Tactile Wave + 3D Perspective Tilt */}
         <motion.div
           aria-hidden="true"
           style={
@@ -103,24 +119,36 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
               : {
                   scale: monolithScale,
                   opacity: heroOpacity,
+                  perspective: 1200,
                 }
           }
           className="pointer-events-none absolute inset-0 flex items-center justify-center"
         >
-          <div className="relative grid h-[min(60vh,430px)] w-[min(90vw,640px)] grid-cols-5 gap-1.5 sm:gap-2.5">
-            {SLICE_OFFSETS.map((factor, idx) => (
+          <motion.div
+            style={
+              prefersReduced
+                ? undefined
+                : {
+                    rotateX: tiltX,
+                    rotateY: tiltY,
+                  }
+            }
+            className="relative grid h-[min(60vh,430px)] w-[min(90vw,640px)] grid-cols-5 gap-1.5 sm:gap-2.5"
+          >
+            {SLICE_CENTERS.map((center, idx) => (
               <SliceColumn
                 key={idx}
                 index={idx}
-                factor={factor}
-                sliceShift={sliceShift}
+                center={center}
+                pointerX={smoothXNorm}
+                pointerActive={smoothActive}
                 prefersReduced={prefersReduced}
               />
             ))}
-          </div>
+          </motion.div>
         </motion.div>
 
-        {/* Dead-Centered Split-Voice Typography */}
+        {/* Dead-Centered Split-Voice Typography with Scroll-Velocity Skew */}
         <motion.div
           style={
             prefersReduced
@@ -128,6 +156,7 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
               : {
                   scale: heroScale,
                   opacity: heroOpacity,
+                  skewY: scrollSkew,
                 }
           }
           className="relative z-10 mx-auto flex w-full max-w-[1440px] flex-col items-center text-center select-none"
@@ -145,7 +174,7 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
             <motion.span
               initial={prefersReduced ? false : { y: 44, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ ...ENTER_SPRING, delay: 0.04 }}
+              transition={{ ...ENTER_SPRING, delay: 0.45 }}
               style={prefersReduced ? undefined : { x: topLineX }}
               className="block font-condensed text-[clamp(3.9rem,1.8rem+11.5vw,8.4rem)] leading-[0.8] font-extrabold tracking-[-0.04em] uppercase text-[#F4F4EE] md:text-[clamp(7rem,2.4rem+11.5vw,15.2rem)]"
             >
@@ -156,7 +185,7 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
             <motion.span
               initial={prefersReduced ? false : { scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ ...ENTER_SPRING, delay: 0.14 }}
+              transition={{ ...ENTER_SPRING, delay: 0.56 }}
               style={prefersReduced ? undefined : { y: domainY }}
               className="relative z-20 -my-2 block pb-1 font-editorial text-[clamp(2.5rem,1.2rem+6.2vw,5.2rem)] leading-[1.02] italic tracking-[-0.02em] text-[#0258FF] sm:-my-4 md:text-[clamp(4.2rem,1.8rem+5.6vw,8.6rem)]"
             >
@@ -167,7 +196,7 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
             <motion.span
               initial={prefersReduced ? false : { y: 44, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ ...ENTER_SPRING, delay: 0.1 }}
+              transition={{ ...ENTER_SPRING, delay: 0.51 }}
               style={prefersReduced ? undefined : { x: bottomLineX }}
               className="block font-condensed text-[clamp(3.9rem,1.8rem+11.5vw,8.4rem)] leading-[0.8] font-extrabold tracking-[-0.04em] uppercase text-[#F4F4EE] md:text-[clamp(7rem,2.4rem+11.5vw,15.2rem)]"
             >
@@ -190,20 +219,27 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
           </p>
         </motion.div>
 
-        {/* Centered scroll pill */}
-        <motion.a
-          href="#portal"
+        {/* Centered magnetic scroll pill */}
+        <motion.div
           style={prefersReduced ? undefined : { opacity: heroOpacity }}
-          className="group relative z-20 mt-6 inline-flex min-h-[44px] items-center gap-2 rounded-full border border-white/20 bg-[#1A1B18]/85 px-5 font-condensed text-xs font-bold tracking-[0.2em] uppercase text-[#F4F4EE] backdrop-blur-sm transition-colors hover:border-[#0258FF] hover:bg-[#0258FF] sm:mt-8"
+          className="relative z-20 mt-6 sm:mt-8"
         >
-          <span>SCROLL</span>
-          <ArrowDownIcon
-            size={14}
-            weight="bold"
-            aria-hidden="true"
-            className="transition-transform duration-200 group-hover:translate-y-1"
-          />
-        </motion.a>
+          <Magnetic strength={0.28}>
+            <a
+              href="#portal"
+              data-cursor="SCROLL"
+              className="group inline-flex min-h-[44px] items-center gap-2 rounded-full border border-white/20 bg-[#1A1B18]/85 px-5 font-condensed text-xs font-bold tracking-[0.2em] uppercase text-[#F4F4EE] backdrop-blur-sm transition-colors hover:border-[#0258FF] hover:bg-[#0258FF]"
+            >
+              <span>SCROLL</span>
+              <ArrowDownIcon
+                size={14}
+                weight="bold"
+                aria-hidden="true"
+                className="transition-transform duration-200 group-hover:translate-y-1"
+              />
+            </a>
+          </Magnetic>
+        </motion.div>
 
         {/* Rounded transition panel synchronized with Scene 02's cobalt flood */}
         {!prefersReduced && (
@@ -228,37 +264,55 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
 
 interface SliceColumnProps {
   index: number;
-  factor: number;
-  sliceShift: ReturnType<typeof useTransform<number, number>>;
+  center: number;
+  pointerX: MotionValue<number>;
+  pointerActive: MotionValue<number>;
   prefersReduced: boolean;
 }
 
 function SliceColumn({
   index,
-  factor,
-  sliceShift,
+  center,
+  pointerX,
+  pointerActive,
   prefersReduced,
 }: SliceColumnProps) {
-  const y = useTransform(sliceShift, (v) => v * factor);
+  // Compute smooth bell-curve proximity (0..1) to the cursor's horizontal position
+  const proximity = useTransform([pointerX, pointerActive], ([px, active]) => {
+    const dist = Math.abs((px as number) - center);
+    const wave = Math.max(0, 1 - dist / 0.34);
+    return wave * wave * (active as number);
+  });
+
+  const y = useTransform(proximity, [0, 1], [0, -22]);
+  const scale = useTransform(proximity, [0, 1], [1, 1.035]);
+  const glowOpacity = useTransform(proximity, [0, 1], [index === 2 ? 0.55 : 0.12, 1]);
+  const digitOpacity = useTransform(proximity, [0, 1], [0.06, 0.2]);
+
   const isAccentSlice = index === 2;
 
   return (
     <motion.div
-      style={prefersReduced ? undefined : { y }}
+      style={prefersReduced ? undefined : { y, scale }}
       className={`relative overflow-hidden rounded-2xl border ${
         isAccentSlice
           ? "border-[#0258FF]/45 bg-[#1A1B18]"
           : "border-white/[0.08] bg-[#161715]"
       }`}
     >
-      <div
+      {/* Dynamic cobalt wave sheen reacting to cursor proximity */}
+      <motion.div
+        style={prefersReduced ? undefined : { opacity: glowOpacity }}
         className="absolute inset-0"
-        style={{
-          background: isAccentSlice
-            ? "linear-gradient(155deg, rgba(2,88,255,0.22) 0%, rgba(2,88,255,0.03) 58%, transparent 100%)"
-            : "linear-gradient(155deg, rgba(244,244,238,0.05) 0%, transparent 60%)",
-        }}
-      />
+      >
+        <div
+          className="h-full w-full"
+          style={{
+            background:
+              "linear-gradient(155deg, rgba(2,88,255,0.34) 0%, rgba(2,88,255,0.06) 55%, transparent 100%)",
+          }}
+        />
+      </motion.div>
 
       <div
         className="absolute inset-y-0 flex items-center justify-center"
@@ -267,12 +321,15 @@ function SliceColumn({
           left: `${-index * 100}%`,
         }}
       >
-        <span className="font-condensed text-[clamp(14rem,34vw,24rem)] leading-none font-extrabold tracking-[-0.06em] text-white/[0.06]">
+        <motion.span
+          style={prefersReduced ? undefined : { opacity: digitOpacity }}
+          className="font-condensed text-[clamp(14rem,34vw,24rem)] leading-none font-extrabold tracking-[-0.06em] text-white"
+        >
           26
-        </span>
+        </motion.span>
       </div>
 
-      <span className="absolute bottom-3 left-3 font-mono text-[10px] tracking-[0.14em] text-white/25">
+      <span className="absolute bottom-3 left-3 font-mono text-[10px] tracking-[0.14em] text-white/30">
         0{index + 1}
       </span>
     </motion.div>

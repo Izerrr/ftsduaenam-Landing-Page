@@ -1,5 +1,8 @@
 import { useCallback, useState } from "react";
 import { MotionConfig } from "motion/react";
+import { SmoothScroll } from "@/components/SmoothScroll";
+import { StudioPreloader } from "@/components/StudioPreloader";
+import { StudioCursor } from "@/components/StudioCursor";
 import { TopBar } from "@/components/TopBar";
 import { MonolithScene } from "@/components/MonolithScene";
 import { PortalScene } from "@/components/PortalScene";
@@ -18,6 +21,15 @@ export function App() {
         <a href="#konten-utama" className="skip-link">
           Lewati ke konten utama
         </a>
+
+        {/* Lenis smooth scroll inertia + keyboard shortcuts (1, 2, 3) */}
+        <SmoothScroll />
+
+        {/* Crisp 0.78s studio preloader (00 -> 26) */}
+        <StudioPreloader />
+
+        {/* Minimalist OFF+BRAND mix-blend-difference studio cursor */}
+        <StudioCursor />
 
         {/* Subtle tactile studio grain */}
         <div
