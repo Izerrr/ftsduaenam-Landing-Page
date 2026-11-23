@@ -118,3 +118,8 @@
 .headline-balance {
   text-wrap: balance;
 }
+
+/* Secret negative contrast film mode applied on <html> to preserve fixed positioning */
+html.studio-inverted {
+  filter: invert(1) hue-rotate(180deg);
+}

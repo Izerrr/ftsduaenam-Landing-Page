@@ -14,6 +14,7 @@ import { SignatureDraw } from "@/components/SignatureDraw";
 import { Magnetic } from "@/components/Magnetic";
 import { KineticText } from "@/components/KineticText";
 import { useScrollSkew } from "@/hooks/useScrollSkew";
+import { subscribeSynthSlice } from "@/lib/studioEvents";
 import { studioSound } from "@/lib/studioSound";
 
 const ENTER_SPRING = {
@@ -385,14 +386,34 @@ function SliceColumn({
   overdrive,
   prefersReduced,
 }: SliceColumnProps) {
-  // Smooth bell-curve wave boosted uniformly during Overdrive Hold
+  const synthRaw = useMotionValue(0);
+  const smoothSynth = useSpring(synthRaw, { stiffness: 420, damping: 20 });
+
+  useEffect(() => {
+    if (prefersReduced) return;
+    let decayTimer = 0;
+    const unsubscribe = subscribeSynthSlice((hitIndex) => {
+      if (hitIndex !== index) return;
+      synthRaw.set(1);
+      window.clearTimeout(decayTimer);
+      decayTimer = window.setTimeout(() => {
+        synthRaw.set(0);
+      }, 150);
+    });
+    return () => {
+      window.clearTimeout(decayTimer);
+      unsubscribe();
+    };
+  }, [index, prefersReduced, synthRaw]);
+
+  // Smooth bell-curve wave boosted by Overdrive Hold + Synthesia equalizer hits
   const energy = useTransform(
-    [pointerX, pointerActive, overdrive],
-    ([px, active, od]) => {
+    [pointerX, pointerActive, overdrive, smoothSynth],
+    ([px, active, od, synth]) => {
       const dist = Math.abs((px as number) - center);
       const wave = Math.max(0, 1 - dist / 0.34);
       const hoverVal = wave * wave * (active as number);
-      return Math.max(hoverVal, od as number);
+      return Math.max(hoverVal, od as number, synth as number);
     }
   );
 

@@ -261,6 +261,30 @@ class StudioSoundEngine {
     osc.stop(now + 0.44);
     overtone.stop(now + 0.44);
   }
+
+  /** Warm lush D-minor 9 chord shimmer triggered by secret keyword easter eggs */
+  playChord() {
+    const ctx = this.getReadyContext();
+    if (!ctx) return;
+
+    const chord = [293.66, 349.23, 440.0, 523.25, 659.25];
+    const now = ctx.currentTime;
+
+    chord.forEach((freq, idx) => {
+      const start = now + idx * 0.032;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(0.001, start);
+      gain.gain.linearRampToValueAtTime(0.04, start + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.65);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + 0.68);
+    });
+  }
 }
 
 export const studioSound = new StudioSoundEngine();

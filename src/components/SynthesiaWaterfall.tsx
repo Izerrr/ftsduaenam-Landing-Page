@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { studioSound } from "@/lib/studioSound";
 import { isTypingBurstActive, markTypingBurst } from "@/lib/sceneNavigation";
+import {
+  dispatchClearInk,
+  dispatchCobaltWave,
+  dispatchSynthSlice,
+  subscribeCobaltWave,
+  toggleStudioInvert,
+} from "@/lib/studioEvents";
 
 interface NoteBar {
   id: number;
@@ -36,6 +43,8 @@ interface KeyFlare {
 interface SynthesiaWaterfallProps {
   portalFloodActive: boolean;
 }
+
+const DEFAULT_TITLE = "FTS26 | ftsduaenam.web.id";
 
 const KEYBOARD_ROWS = [
   "1234567890-=",
@@ -102,8 +111,10 @@ const HUD_IDLE_MS = 2600;
 
 /**
  * Keyboard Synthesia Waterfall & Floating Bubble Synth + Live WPM Meter:
- * Type any text anywhere on the page to trigger rising Synthesia note beams mapped to QWERTY layout,
- * buoyant bubbles, pentatonic synth tones (when Sound is ON), and a clean auto-hiding WPM pill.
+ * - Maps QWERTY keystrokes to rising Synthesia beams & buoyant bubbles with scroll inertia.
+ * - Feeds 5-channel Hero slice equalizer hits in real time.
+ * - Listens for hidden keyword triggers ("fts", "duaenam", "invert", "clear").
+ * - Updates browser tab title dynamically during typing or when tab is inactive.
  */
 export function SynthesiaWaterfall({
   portalFloodActive,
@@ -116,6 +127,7 @@ export function SynthesiaWaterfall({
   const [wpm, setWpm] = useState(0);
   const [ticker, setTicker] = useState("");
   const [pulseTick, setPulseTick] = useState(0);
+  const [waveIds, setWaveIds] = useState<number[]>([]);
 
   const barsRef = useRef<NoteBar[]>([]);
   const bubblesRef = useRef<SynthBubble[]>([]);
@@ -123,10 +135,49 @@ export function SynthesiaWaterfall({
   const heldByCodeRef = useRef<Map<string, NoteBar>>(new Map());
   const timestampsRef = useRef<number[]>([]);
   const sessionStartRef = useRef<number>(0);
+  const commandBufRef = useRef("");
 
   useEffect(() => {
     portalFloodRef.current = portalFloodActive;
   }, [portalFloodActive]);
+
+  // Dynamic browser tab title (idle / live WPM / standing by)
+  useEffect(() => {
+    const syncTitle = () => {
+      if (document.hidden) {
+        document.title = "FTS26 · Standing by";
+      } else if (hudVisible && wpm > 0) {
+        document.title = `FTS26 · ${wpm} WPM`;
+      } else {
+        document.title = DEFAULT_TITLE;
+      }
+    };
+
+    syncTitle();
+    document.addEventListener("visibilitychange", syncTitle);
+    return () => {
+      document.removeEventListener("visibilitychange", syncTitle);
+    };
+  }, [hudVisible, wpm]);
+
+  useEffect(() => {
+    return () => {
+      document.title = DEFAULT_TITLE;
+    };
+  }, []);
+
+  // Cobalt shockwave subscription
+  useEffect(() => {
+    let seq = 0;
+    const unsubscribe = subscribeCobaltWave(() => {
+      const id = ++seq;
+      setWaveIds((prev) => [...prev.slice(-2), id]);
+      window.setTimeout(() => {
+        setWaveIds((prev) => prev.filter((item) => item !== id));
+      }, 900);
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     if (prefersReduced || !canvasRef.current) return;
@@ -138,6 +189,8 @@ export function SynthesiaWaterfall({
     let lastTime = performance.now();
     let hideTimer = 0;
     let noteSeq = 0;
+    let lastScrollY = window.scrollY;
+    let pendingScrollShift = 0;
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -165,6 +218,18 @@ export function SynthesiaWaterfall({
       return Math.min(240, Math.round((words * 60000) / span));
     };
 
+    const onScroll = () => {
+      const currentY = window.scrollY;
+      const delta = currentY - lastScrollY;
+      lastScrollY = currentY;
+      if (barsRef.current.length > 0 || bubblesRef.current.length > 0) {
+        pendingScrollShift = Math.max(
+          -180,
+          Math.min(180, pendingScrollShift + delta * 0.45)
+        );
+      }
+    };
+
     const ensureLoop = () => {
       if (rafId !== 0) return;
       lastTime = performance.now();
@@ -177,7 +242,12 @@ export function SynthesiaWaterfall({
         const h = window.innerHeight;
         ctx.clearRect(0, 0, w, h);
 
-        // 1. Update & render bottom key flares
+        // Smoothed scroll-inertia push shared across waterfalls & bubbles
+        const scrollShiftY = pendingScrollShift * 0.22;
+        pendingScrollShift *= 0.78;
+        if (Math.abs(pendingScrollShift) < 0.05) pendingScrollShift = 0;
+
+        // 1. Bottom key impact flares
         const flares = flaresRef.current;
         for (let i = flares.length - 1; i >= 0; i -= 1) {
           const flare = flares[i];
@@ -213,13 +283,13 @@ export function SynthesiaWaterfall({
           ctx.fill();
         }
 
-        // 2. Update & render Synthesia rising note bars
+        // 2. Synthesia rising note bars
         const bars = barsRef.current;
         for (let i = bars.length - 1; i >= 0; i -= 1) {
           const bar = bars[i];
-          bar.topY -= RISE_SPEED_PX * dt;
+          bar.topY -= RISE_SPEED_PX * dt + scrollShiftY * 0.45;
           if (!bar.held) {
-            bar.bottomY -= RISE_SPEED_PX * dt;
+            bar.bottomY -= RISE_SPEED_PX * dt + scrollShiftY * 0.45;
           }
 
           if (bar.bottomY < -20) {
@@ -229,10 +299,7 @@ export function SynthesiaWaterfall({
 
           const height = Math.max(10, bar.bottomY - bar.topY);
           const midY = (bar.topY + bar.bottomY) / 2;
-          const verticalFade = Math.max(
-            0,
-            Math.min(1, midY / (h * 0.42))
-          );
+          const verticalFade = Math.max(0, Math.min(1, midY / (h * 0.42)));
           const alpha = Math.max(0.05, verticalFade * 0.9);
 
           const xLeft = bar.x - bar.width / 2;
@@ -244,10 +311,7 @@ export function SynthesiaWaterfall({
               `rgba(244, 244, 238, ${(alpha * 0.45).toFixed(3)})`
             );
           } else {
-            grad.addColorStop(
-              0,
-              `rgba(92, 154, 255, ${alpha.toFixed(3)})`
-            );
+            grad.addColorStop(0, `rgba(92, 154, 255, ${alpha.toFixed(3)})`);
             grad.addColorStop(
               0.45,
               `rgba(2, 88, 255, ${(alpha * 0.9).toFixed(3)})`
@@ -262,14 +326,12 @@ export function SynthesiaWaterfall({
           ctx.fillStyle = grad;
           ctx.fill();
 
-          // Subtle crisp outer rim
           ctx.strokeStyle = bar.onFlood
             ? `rgba(255, 255, 255, ${(alpha * 0.9).toFixed(3)})`
             : `rgba(140, 186, 255, ${(alpha * 0.65).toFixed(3)})`;
           ctx.lineWidth = 1;
           ctx.stroke();
 
-          // Tiny character glyph at note crown
           if (height >= 16 && bar.label !== "SPACE") {
             ctx.fillStyle = bar.onFlood
               ? `rgba(17, 17, 18, ${alpha.toFixed(3)})`
@@ -281,11 +343,11 @@ export function SynthesiaWaterfall({
           }
         }
 
-        // 3. Update & render buoyant Synthesia bubbles
+        // 3. Buoyant Synthesia bubbles
         const bubbles = bubblesRef.current;
         for (let i = bubbles.length - 1; i >= 0; i -= 1) {
           const b = bubbles[i];
-          b.y -= b.vy * dt;
+          b.y -= b.vy * dt + scrollShiftY * 0.7;
           b.wobblePhase += dt * 4.2;
           b.x += Math.sin(b.wobblePhase) * b.wobbleAmp * dt;
           b.life -= dt * 0.48;
@@ -327,7 +389,34 @@ export function SynthesiaWaterfall({
         setTicker("");
         timestampsRef.current = [];
         sessionStartRef.current = 0;
+        commandBufRef.current = "";
       }, HUD_IDLE_MS);
+    };
+
+    const checkSecretKeyword = (char: string) => {
+      if (!/^[a-z0-9]$/i.test(char)) return;
+      commandBufRef.current = (commandBufRef.current + char.toLowerCase()).slice(-16);
+      const buf = commandBufRef.current;
+
+      if (buf.endsWith("duaenam") || buf.endsWith("fts")) {
+        dispatchCobaltWave();
+        studioSound.playChord();
+        commandBufRef.current = "";
+        return;
+      }
+
+      if (buf.endsWith("invert")) {
+        toggleStudioInvert();
+        studioSound.playShutter();
+        commandBufRef.current = "";
+        return;
+      }
+
+      if (buf.endsWith("clear")) {
+        dispatchClearInk();
+        studioSound.playSuccess();
+        commandBufRef.current = "";
+      }
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -346,6 +435,7 @@ export function SynthesiaWaterfall({
 
       if (event.key === "Backspace") {
         setTicker((prev) => prev.slice(0, -1));
+        commandBufRef.current = commandBufRef.current.slice(0, -1);
         scheduleHudHide();
         return;
       }
@@ -354,7 +444,6 @@ export function SynthesiaWaterfall({
       const isEnter = event.key === "Enter";
       if (!isPrintable && !isEnter) return;
 
-      // Preserve idle 1 / 2 / 3 scene jump shortcuts when user isn't mid-typing
       if (
         (event.key === "1" || event.key === "2" || event.key === "3") &&
         !isTypingBurstActive()
@@ -367,7 +456,10 @@ export function SynthesiaWaterfall({
       if (event.repeat) return;
 
       const now = performance.now();
-      if (sessionStartRef.current === 0 || now - (timestampsRef.current.at(-1) ?? 0) > HUD_IDLE_MS) {
+      if (
+        sessionStartRef.current === 0 ||
+        now - (timestampsRef.current.at(-1) ?? 0) > HUD_IDLE_MS
+      ) {
         sessionStartRef.current = now;
         timestampsRef.current = [];
       }
@@ -388,6 +480,9 @@ export function SynthesiaWaterfall({
       const x = normX * window.innerWidth;
       const h = window.innerHeight;
       const onFlood = portalFloodRef.current;
+
+      // Feed 5-channel Hero Slice Visualizer
+      dispatchSynthSlice(Math.min(4, Math.max(0, Math.floor(normX * 5))));
 
       const bar: NoteBar = {
         id: ++noteSeq,
@@ -425,6 +520,9 @@ export function SynthesiaWaterfall({
       }
 
       studioSound.playNote(normX);
+      if (isPrintable) {
+        checkSecretKeyword(event.key);
+      }
       ensureLoop();
     };
 
@@ -447,6 +545,7 @@ export function SynthesiaWaterfall({
       heldByCodeRef.current.clear();
     };
 
+    window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("blur", releaseAll);
@@ -455,6 +554,7 @@ export function SynthesiaWaterfall({
       window.clearTimeout(hideTimer);
       if (rafId) window.cancelAnimationFrame(rafId);
       window.removeEventListener("resize", resize);
+      window.removeEventListener("scroll", onScroll);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("blur", releaseAll);
@@ -470,6 +570,25 @@ export function SynthesiaWaterfall({
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 z-[37] h-full w-full"
       />
+
+      {/* Secret Keyword Cobalt Shockwave Rings */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-[38] flex items-center justify-center overflow-hidden"
+      >
+        <AnimatePresence>
+          {waveIds.map((id) => (
+            <motion.span
+              key={id}
+              initial={{ opacity: 0.9, scale: 0.1 }}
+              animate={{ opacity: 0, scale: 4.5 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute h-64 w-64 rounded-full border-2 border-[#0258FF] shadow-[0_0_60px_rgba(2,88,255,0.45)]"
+            />
+          ))}
+        </AnimatePresence>
+      </div>
 
       {/* Minimalist auto-hiding WPM + Live Synth Ticker Pill */}
       <AnimatePresence>

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useReducedMotion } from "motion/react";
+import { subscribeClearInk, toggleStudioInvert } from "@/lib/studioEvents";
 
 interface DrawPoint {
   x: number;
@@ -20,10 +21,10 @@ interface StudioDrawCanvasProps {
 const STROKE_LIFETIME_MS = 3800;
 
 /**
- * Freehand Hold-and-Drag Cobalt Light Brush:
+ * Freehand Hold-and-Drag Cobalt Light Brush with Scroll-Inertia Physics:
  * Click, hold, and drag anywhere on open canvas space (outside buttons/links)
- * to sketch fluid OFF+BRAND vector strokes that dissolve cleanly after ~3.8s.
- * Starts its RAF loop on demand and idles at 0% CPU when empty.
+ * to sketch fluid OFF+BRAND vector strokes that drift gently with page scroll momentum
+ * and dissolve cleanly after ~3.8s (or Esc / "clear").
  */
 export function StudioDrawCanvas({ portalFloodActive }: StudioDrawCanvasProps) {
   const prefersReduced = Boolean(useReducedMotion());
@@ -49,6 +50,8 @@ export function StudioDrawCanvas({ portalFloodActive }: StudioDrawCanvasProps) {
     let startY = 0;
     let lastPoint: { x: number; y: number; time: number } | null = null;
     let previousUserSelect = "";
+    let lastScrollY = window.scrollY;
+    let pendingScrollShift = 0;
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -67,15 +70,27 @@ export function StudioDrawCanvas({ portalFloodActive }: StudioDrawCanvasProps) {
         const now = performance.now();
         ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
+        // Apply smoothed inertial scroll drift to non-active strokes
+        const shiftY = pendingScrollShift * 0.24;
+        pendingScrollShift *= 0.76;
+        if (Math.abs(pendingScrollShift) < 0.05) pendingScrollShift = 0;
+
         const strokes = strokesRef.current;
         for (let s = strokes.length - 1; s >= 0; s -= 1) {
           const stroke = strokes[s];
-          // Prune expired points
-          stroke.points = stroke.points.filter(
-            (pt) => now - pt.bornAt < STROKE_LIFETIME_MS
-          );
+          const isCurrent = stroke === activeStrokeRef.current;
+
+          for (let p = stroke.points.length - 1; p >= 0; p -= 1) {
+            const pt = stroke.points[p];
+            if (now - pt.bornAt >= STROKE_LIFETIME_MS) {
+              stroke.points.splice(p, 1);
+            } else if (!isCurrent && shiftY !== 0) {
+              pt.y -= shiftY;
+            }
+          }
+
           if (stroke.points.length < 2) {
-            if (stroke !== activeStrokeRef.current) {
+            if (!isCurrent) {
               strokes.splice(s, 1);
             }
             continue;
@@ -89,7 +104,6 @@ export function StudioDrawCanvas({ portalFloodActive }: StudioDrawCanvasProps) {
             const p1 = stroke.points[i];
             const age = now - p1.bornAt;
             const life = Math.max(0, 1 - age / STROKE_LIFETIME_MS);
-            // Smooth cubic fade at the end of life
             const alpha = Math.pow(life, 1.5);
             if (alpha <= 0.01) continue;
 
@@ -100,7 +114,6 @@ export function StudioDrawCanvas({ portalFloodActive }: StudioDrawCanvasProps) {
             const prevMidY =
               i > 1 ? (stroke.points[i - 2].y + p0.y) / 2 : p0.y;
 
-            // Outer glowing ribbon
             ctx.beginPath();
             ctx.moveTo(prevMidX, prevMidY);
             ctx.quadraticCurveTo(p0.x, p0.y, midX, midY);
@@ -110,7 +123,6 @@ export function StudioDrawCanvas({ portalFloodActive }: StudioDrawCanvasProps) {
               : `rgba(2, 88, 255, ${(alpha * 0.88).toFixed(3)})`;
             ctx.stroke();
 
-            // Crisp bright inner core
             ctx.beginPath();
             ctx.moveTo(prevMidX, prevMidY);
             ctx.quadraticCurveTo(p0.x, p0.y, midX, midY);
@@ -132,6 +144,13 @@ export function StudioDrawCanvas({ portalFloodActive }: StudioDrawCanvasProps) {
       rafId = window.requestAnimationFrame(render);
     };
 
+    const clearAll = () => {
+      strokesRef.current = [];
+      activeStrokeRef.current = null;
+      pendingScrollShift = 0;
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    };
+
     const stopDrawing = () => {
       if (!isPointerDown) return;
       isPointerDown = false;
@@ -140,6 +159,15 @@ export function StudioDrawCanvas({ portalFloodActive }: StudioDrawCanvasProps) {
       if (hasDragged) {
         document.body.style.userSelect = previousUserSelect;
         hasDragged = false;
+      }
+    };
+
+    const onScroll = () => {
+      const currentY = window.scrollY;
+      const delta = currentY - lastScrollY;
+      lastScrollY = currentY;
+      if (strokesRef.current.length > 0) {
+        pendingScrollShift = Math.max(-180, Math.min(180, pendingScrollShift + delta * 0.55));
       }
     };
 
@@ -202,13 +230,15 @@ export function StudioDrawCanvas({ portalFloodActive }: StudioDrawCanvasProps) {
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && strokesRef.current.length > 0) {
-        strokesRef.current = [];
-        activeStrokeRef.current = null;
-        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      if (event.key === "Escape") {
+        clearAll();
+        toggleStudioInvert(false);
       }
     };
 
+    const unsubscribeClear = subscribeClearInk(clearAll);
+
+    window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("pointerdown", onPointerDown, { passive: true });
     window.addEventListener("pointermove", onPointerMove, { passive: true });
     window.addEventListener("pointerup", stopDrawing, { passive: true });
@@ -218,8 +248,10 @@ export function StudioDrawCanvas({ portalFloodActive }: StudioDrawCanvasProps) {
 
     return () => {
       stopDrawing();
+      unsubscribeClear();
       if (rafId) window.cancelAnimationFrame(rafId);
       window.removeEventListener("resize", resize);
+      window.removeEventListener("scroll", onScroll);
       window.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", stopDrawing);

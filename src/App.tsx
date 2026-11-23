@@ -6,6 +6,7 @@ import { StudioCursor } from "@/components/StudioCursor";
 import { TopBar } from "@/components/TopBar";
 import { StudioDrawCanvas } from "@/components/StudioDrawCanvas";
 import { SynthesiaWaterfall } from "@/components/SynthesiaWaterfall";
+import { StudioContextMenu } from "@/components/StudioContextMenu";
 import { MonolithScene } from "@/components/MonolithScene";
 import { PortalScene } from "@/components/PortalScene";
 import { SignalScene } from "@/components/SignalScene";
@@ -44,6 +45,9 @@ export function App() {
 
         {/* Synthesia keyboard waterfall, bubbles & live WPM */}
         <SynthesiaWaterfall portalFloodActive={portalFloodActive} />
+
+        {/* Minimalist right-click quick action pill */}
+        <StudioContextMenu />
 
         <TopBar portalFloodActive={portalFloodActive} />
 
