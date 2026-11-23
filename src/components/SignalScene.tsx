@@ -8,7 +8,10 @@ import { IDENTITY, URLS } from "@/data/services";
 import { FtsLogo } from "@/components/FtsLogo";
 import { SignatureDraw } from "@/components/SignatureDraw";
 import { Magnetic } from "@/components/Magnetic";
+import { KineticText } from "@/components/KineticText";
+import { jumpToScene } from "@/lib/sceneNavigation";
 import { useScrollSkew } from "@/hooks/useScrollSkew";
+import { studioSound } from "@/lib/studioSound";
 
 const HOVER_SPRING = {
   type: "spring" as const,
@@ -23,7 +26,7 @@ interface SignalSceneProps {
 /**
  * Scene 03: CONTACT & THREE-ZONE STUDIO FOOTER (Deep Charcoal #111112)
  * Slides smoothly over Scene 02 with synchronized Electric Cobalt shoulder flood,
- * scroll-scrubbed SVG signature draw, scroll-velocity skew, and magnetic studio pills.
+ * scroll-scrubbed SVG signature draw, kinetic letter hover on CON TACT, and magnetic studio pills.
  */
 export function SignalScene({ portalFloodActive }: SignalSceneProps) {
   const footerRef = useRef<HTMLElement>(null);
@@ -40,6 +43,7 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
   const handleCopyEmail = async () => {
     try {
       await navigator.clipboard.writeText(URLS.emailDisplay);
+      studioSound.playSuccess();
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2200);
     } catch {
@@ -48,10 +52,8 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
   };
 
   const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: prefersReduced ? "auto" : "smooth",
-    });
+    studioSound.playClick();
+    jumpToScene("#monolith");
   };
 
   return (
@@ -99,6 +101,7 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
           <motion.a
             href={URLS.email}
             data-cursor="MAIL"
+            onClick={() => studioSound.playClick()}
             onMouseEnter={() => setContactHovered(true)}
             onMouseLeave={() => setContactHovered(false)}
             onFocus={() => setContactHovered(true)}
@@ -116,7 +119,7 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
                 transition={HOVER_SPRING}
                 className="font-condensed text-[clamp(3.3rem,1.6rem+10vw,7.4rem)] leading-[0.86] font-extrabold tracking-[-0.04em] uppercase text-[#F4F4EE] md:text-[clamp(6rem,2.2rem+9.8vw,13rem)]"
               >
-                CON
+                <KineticText text="CON" />
               </motion.span>
               <motion.span
                 animate={
@@ -127,7 +130,7 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
                 transition={HOVER_SPRING}
                 className="pb-2 font-editorial text-[clamp(3.5rem,1.7rem+10.5vw,7.8rem)] leading-[0.88] italic tracking-[-0.02em] text-[#F4F4EE] transition-colors duration-200 group-hover:text-[#0258FF] md:text-[clamp(6.3rem,2.4rem+10.2vw,13.6rem)]"
               >
-                TACT
+                <KineticText text="TACT" hoverColor="#0258FF" />
               </motion.span>
             </span>
 
@@ -149,6 +152,7 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
             <Magnetic strength={0.2}>
               <a
                 href={URLS.email}
+                onClick={() => studioSound.playClick()}
                 data-cursor="MAIL"
                 className="inline-flex min-h-[48px] items-center gap-2 rounded-full bg-[#F4F4EE] px-6 font-mono text-xs font-medium tracking-[0.04em] text-[#111112] transition-colors hover:bg-[#0258FF] hover:text-white active:scale-[0.98] sm:text-sm"
               >
@@ -205,6 +209,7 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
                 href={URLS.login}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => studioSound.playClick()}
                 className="inline-flex min-h-[44px] items-center font-condensed text-xs font-bold tracking-[0.16em] uppercase text-[#F4F4EE] transition-colors hover:text-[#5C9AFF]"
               >
                 LOGIN
@@ -213,6 +218,7 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
                 href={URLS.privacy}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => studioSound.playClick()}
                 className="inline-flex min-h-[44px] items-center font-condensed text-xs font-bold tracking-[0.16em] uppercase text-[#A1A19C] transition-colors hover:text-white"
               >
                 PRIVACY
@@ -221,6 +227,7 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
                 href={URLS.terms}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => studioSound.playClick()}
                 className="inline-flex min-h-[44px] items-center font-condensed text-xs font-bold tracking-[0.16em] uppercase text-[#A1A19C] transition-colors hover:text-white"
               >
                 TERMS

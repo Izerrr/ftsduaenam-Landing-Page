@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   motion,
   useMotionValue,
@@ -12,7 +12,9 @@ import { ArrowDownIcon } from "@phosphor-icons/react/ArrowDown";
 import { IDENTITY } from "@/data/services";
 import { SignatureDraw } from "@/components/SignatureDraw";
 import { Magnetic } from "@/components/Magnetic";
+import { KineticText } from "@/components/KineticText";
 import { useScrollSkew } from "@/hooks/useScrollSkew";
+import { studioSound } from "@/lib/studioSound";
 
 const ENTER_SPRING = {
   type: "spring" as const,
@@ -29,22 +31,25 @@ interface MonolithSceneProps {
 /**
  * Scene 01: HERO MONOLITH (Deep Charcoal #111112)
  * Dead-centered typographic monolith with scroll-velocity skew, interactive 5-slice tactile wave
- * + 3D tilt, SVG vector signature draw, and synchronized scroll expansion into Scene 02.
+ * + 3D tilt, press-and-hold "Overdrive" bloom, kinetic letter drift, SVG signature, and portal expand.
  */
 export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
   const trackRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const prefersReduced = Boolean(useReducedMotion());
   const scrollSkew = useScrollSkew(2.8);
+  const [overdrive, setOverdrive] = useState(false);
 
   // Normalized pointer tracking (0..1) via MotionValues + Springs (zero React re-renders)
   const rawXNorm = useMotionValue(0.5);
   const rawYNorm = useMotionValue(0.5);
   const pointerActive = useMotionValue(0);
+  const overdriveRaw = useMotionValue(0);
 
   const smoothXNorm = useSpring(rawXNorm, { stiffness: 160, damping: 24 });
   const smoothYNorm = useSpring(rawYNorm, { stiffness: 140, damping: 24 });
   const smoothActive = useSpring(pointerActive, { stiffness: 180, damping: 24 });
+  const smoothOverdrive = useSpring(overdriveRaw, { stiffness: 220, damping: 22 });
 
   // Subtle 3D perspective tilt on the 5-slice backdrop container
   const tiltY = useTransform(smoothXNorm, [0, 1], [-4.5, 4.5]);
@@ -71,6 +76,24 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
   const portalInnerScale = useTransform(scrollYProgress, [0.32, 0.95], [0.88, 1.04]);
   const portalBarScaleX = useTransform(scrollYProgress, [0.34, 0.88], [0.15, 1]);
 
+  useEffect(() => {
+    overdriveRaw.set(overdrive ? 1 : 0);
+  }, [overdrive, overdriveRaw]);
+
+  useEffect(() => {
+    if (!overdrive) return;
+    const release = () => {
+      setOverdrive(false);
+      studioSound.playOverdrive(false);
+    };
+    window.addEventListener("pointerup", release);
+    window.addEventListener("pointercancel", release);
+    return () => {
+      window.removeEventListener("pointerup", release);
+      window.removeEventListener("pointercancel", release);
+    };
+  }, [overdrive]);
+
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (prefersReduced || !stageRef.current) return;
     const rect = stageRef.current.getBoundingClientRect();
@@ -89,6 +112,18 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
     rawXNorm.set(0.5);
     rawYNorm.set(0.5);
     pointerActive.set(0);
+    if (overdrive) {
+      setOverdrive(false);
+      studioSound.playOverdrive(false);
+    }
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (prefersReduced || event.button !== 0) return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest("a, button")) return;
+    setOverdrive(true);
+    studioSound.playOverdrive(true);
   };
 
   return (
@@ -105,11 +140,21 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
         ref={stageRef}
         onPointerMove={handlePointerMove}
         onPointerLeave={handlePointerLeave}
+        onPointerDown={handlePointerDown}
         className="sticky top-0 flex h-[100dvh] w-full flex-col items-center justify-center overflow-hidden px-4 sm:px-8"
       >
-        {/* Subtle studio cobalt spotlight */}
-        <div
+        {/* Subtle studio cobalt spotlight + press-and-hold overdrive bloom */}
+        <motion.div
           aria-hidden="true"
+          animate={
+            prefersReduced
+              ? undefined
+              : {
+                  opacity: overdrive ? 1 : 0.72,
+                  scale: overdrive ? 1.18 : 1,
+                }
+          }
+          transition={{ type: "spring", stiffness: 200, damping: 24 }}
           className="hero-spotlight pointer-events-none absolute inset-0"
         />
 
@@ -145,13 +190,14 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
                 center={center}
                 pointerX={smoothXNorm}
                 pointerActive={smoothActive}
+                overdrive={smoothOverdrive}
                 prefersReduced={prefersReduced}
               />
             ))}
           </motion.div>
         </motion.div>
 
-        {/* Dead-Centered Split-Voice Typography with Scroll-Velocity Skew */}
+        {/* Dead-Centered Split-Voice Typography with Scroll-Velocity Skew + Kinetic Letter Drift */}
         <motion.div
           style={
             prefersReduced
@@ -181,7 +227,7 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
               style={prefersReduced ? undefined : { x: topLineX }}
               className="block font-condensed text-[clamp(3.9rem,1.8rem+11.5vw,8.4rem)] leading-[0.8] font-extrabold tracking-[-0.04em] uppercase text-[#F4F4EE] md:text-[clamp(7rem,2.4rem+11.5vw,15.2rem)]"
             >
-              FTS
+              <KineticText text="FTS" hoverColor="#5C9AFF" />
             </motion.span>
 
             {/* Dimensional editorial serif domain */}
@@ -203,18 +249,26 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
               style={prefersReduced ? undefined : { x: bottomLineX }}
               className="block font-condensed text-[clamp(3.9rem,1.8rem+11.5vw,8.4rem)] leading-[0.8] font-extrabold tracking-[-0.04em] uppercase text-[#F4F4EE] md:text-[clamp(7rem,2.4rem+11.5vw,15.2rem)]"
             >
-              DUAENAM
+              <KineticText text="DUAENAM" hoverColor="#5C9AFF" />
             </motion.span>
           </h1>
 
-          {/* Sleek SVG vector signature draw */}
-          <div className="mt-3 sm:mt-5">
+          {/* Sleek SVG vector signature draw pulsing gently on Overdrive Hold */}
+          <motion.div
+            animate={
+              prefersReduced
+                ? undefined
+                : { scale: overdrive ? 1.09 : 1 }
+            }
+            transition={{ type: "spring", stiffness: 260, damping: 20 }}
+            className="mt-3 sm:mt-5"
+          >
             <SignatureDraw
               trigger="mount"
-              stroke="#0258FF"
-              className="h-9 w-auto sm:h-11"
+              stroke={overdrive ? "#5C9AFF" : "#0258FF"}
+              className="h-9 w-auto transition-colors duration-200 sm:h-11"
             />
-          </div>
+          </motion.div>
 
           {/* Core poetic editorial tagline */}
           <p className="mt-2 font-editorial text-base italic tracking-[0.04em] text-[#A1A19C] sm:text-xl">
@@ -230,6 +284,7 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
           <Magnetic strength={0.28}>
             <a
               href="#portal"
+              onClick={() => studioSound.playClick()}
               data-cursor="SCROLL"
               className="group inline-flex min-h-[44px] items-center gap-2 rounded-full border border-white/20 bg-[#1A1B18]/85 px-5 font-condensed text-xs font-bold tracking-[0.2em] uppercase text-[#F4F4EE] backdrop-blur-sm transition-colors hover:border-[#0258FF] hover:bg-[#0258FF]"
             >
@@ -318,6 +373,7 @@ interface SliceColumnProps {
   center: number;
   pointerX: MotionValue<number>;
   pointerActive: MotionValue<number>;
+  overdrive: MotionValue<number>;
   prefersReduced: boolean;
 }
 
@@ -326,19 +382,24 @@ function SliceColumn({
   center,
   pointerX,
   pointerActive,
+  overdrive,
   prefersReduced,
 }: SliceColumnProps) {
-  // Compute smooth bell-curve proximity (0..1) to the cursor's horizontal position
-  const proximity = useTransform([pointerX, pointerActive], ([px, active]) => {
-    const dist = Math.abs((px as number) - center);
-    const wave = Math.max(0, 1 - dist / 0.34);
-    return wave * wave * (active as number);
-  });
+  // Smooth bell-curve wave boosted uniformly during Overdrive Hold
+  const energy = useTransform(
+    [pointerX, pointerActive, overdrive],
+    ([px, active, od]) => {
+      const dist = Math.abs((px as number) - center);
+      const wave = Math.max(0, 1 - dist / 0.34);
+      const hoverVal = wave * wave * (active as number);
+      return Math.max(hoverVal, od as number);
+    }
+  );
 
-  const y = useTransform(proximity, [0, 1], [0, -22]);
-  const scale = useTransform(proximity, [0, 1], [1, 1.035]);
-  const glowOpacity = useTransform(proximity, [0, 1], [index === 2 ? 0.55 : 0.12, 1]);
-  const digitOpacity = useTransform(proximity, [0, 1], [0.06, 0.2]);
+  const y = useTransform(energy, [0, 1], [0, -24]);
+  const scale = useTransform(energy, [0, 1], [1, 1.045]);
+  const glowOpacity = useTransform(energy, [0, 1], [index === 2 ? 0.55 : 0.12, 1]);
+  const digitOpacity = useTransform(energy, [0, 1], [0.06, 0.28]);
 
   const isAccentSlice = index === 2;
 
@@ -351,7 +412,7 @@ function SliceColumn({
           : "border-white/[0.08] bg-[#161715]"
       }`}
     >
-      {/* Dynamic cobalt wave sheen reacting to cursor proximity */}
+      {/* Dynamic cobalt wave sheen reacting to cursor proximity & Overdrive Hold */}
       <motion.div
         style={prefersReduced ? undefined : { opacity: glowOpacity }}
         className="absolute inset-0"
@@ -360,7 +421,7 @@ function SliceColumn({
           className="h-full w-full"
           style={{
             background:
-              "linear-gradient(155deg, rgba(2,88,255,0.34) 0%, rgba(2,88,255,0.06) 55%, transparent 100%)",
+              "linear-gradient(155deg, rgba(2,88,255,0.42) 0%, rgba(2,88,255,0.08) 55%, transparent 100%)",
           }}
         />
       </motion.div>

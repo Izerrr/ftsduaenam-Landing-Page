@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowUpRightIcon } from "@phosphor-icons/react/ArrowUpRight";
-import { IDENTITY, SCENES, URLS, type SceneId } from "@/data/services";
+import {
+  IDENTITY,
+  SCENES,
+  URLS,
+  type SceneId,
+  type SceneMeta,
+} from "@/data/services";
 import { FtsLogo } from "@/components/FtsLogo";
 import { Magnetic } from "@/components/Magnetic";
+import { studioSound, useSoundEnabled } from "@/lib/studioSound";
 
 interface TopBarProps {
   portalFloodActive: boolean;
@@ -15,13 +22,21 @@ const MENU_SPRING = {
   damping: 28,
 };
 
+const EQ_BARS = [
+  { rest: 6, peak: 14, duration: 0.55, delay: 0 },
+  { rest: 12, peak: 5, duration: 0.45, delay: 0.14 },
+  { rest: 8, peak: 15, duration: 0.62, delay: 0.08 },
+] as const;
+
 /**
- * Lando Norris (OFF+BRAND) inspired minimal top bar + full-screen kinetic overlay menu.
- * Automatically adapts between Dark (#111112), Warm Bone (#F4F4EE), and Electric Cobalt (#0258FF).
+ * Lando Norris (OFF+BRAND) inspired minimal top bar + full-screen kinetic overlay menu
+ * with live background index preview and pure Web Audio equalizer toggle.
  */
 export function TopBar({ portalFloodActive }: TopBarProps) {
   const [activeScene, setActiveScene] = useState<SceneId>("monolith");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [hoveredScene, setHoveredScene] = useState<SceneMeta | null>(null);
+  const soundEnabled = useSoundEnabled();
   const prefersReduced = Boolean(useReducedMotion());
 
   useEffect(() => {
@@ -67,6 +82,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setMenuOpen(false);
+        setHoveredScene(null);
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -88,6 +104,14 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
   const menuBtnStyle = isLightSurface
     ? "border-[#111112]/25 bg-[#F4F4EE]/90 text-[#111112] hover:border-[#111112]"
     : "border-white/25 bg-[#111112]/80 text-[#F4F4EE] hover:border-white";
+
+  const handleToggleMenu = () => {
+    studioSound.playClick();
+    setMenuOpen((prev) => {
+      if (prev) setHoveredScene(null);
+      return !prev;
+    });
+  };
 
   return (
     <>
@@ -113,7 +137,10 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
           {/* Left: Clean FTS26 monogram */}
           <a
             href="#monolith"
-            onClick={() => setMenuOpen(false)}
+            onClick={() => {
+              setMenuOpen(false);
+              setHoveredScene(null);
+            }}
             aria-label="FTS26 beranda"
             className={`pointer-events-auto inline-flex min-h-[44px] items-center justify-self-start transition-colors duration-200 ${primaryInk}`}
           >
@@ -160,13 +187,56 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
             </ul>
           </nav>
 
-          {/* Right: Direct TaskPanel pill + Lando-style circular Menu trigger */}
-          <div className="pointer-events-auto flex items-center justify-self-end gap-2.5">
+          {/* Right: Equalizer sound toggle + Direct TaskPanel pill + Menu trigger */}
+          <div className="pointer-events-auto flex items-center justify-self-end gap-2">
+            <Magnetic strength={0.22}>
+              <button
+                type="button"
+                onClick={() => studioSound.toggle()}
+                aria-pressed={soundEnabled}
+                aria-label={
+                  soundEnabled ? "Matikan efek suara" : "Aktifkan efek suara"
+                }
+                data-cursor={soundEnabled ? "MUTE" : "SOUND"}
+                className={`inline-flex h-11 w-11 cursor-pointer items-center justify-center gap-[3px] rounded-full border backdrop-blur-md transition-colors duration-200 active:scale-[0.95] ${menuBtnStyle}`}
+              >
+                {EQ_BARS.map((bar, idx) => (
+                  <motion.span
+                    key={idx}
+                    aria-hidden="true"
+                    animate={
+                      soundEnabled && !prefersReduced
+                        ? { height: [bar.rest, bar.peak, bar.rest] }
+                        : { height: soundEnabled ? bar.rest : 3 }
+                    }
+                    transition={
+                      soundEnabled && !prefersReduced
+                        ? {
+                            duration: bar.duration,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                            delay: bar.delay,
+                          }
+                        : { duration: 0.2 }
+                    }
+                    className={`w-[2px] rounded-full transition-colors ${
+                      soundEnabled
+                        ? portalFloodActive && !menuOpen
+                          ? "bg-white"
+                          : "bg-[#0258FF]"
+                        : "bg-current opacity-50"
+                    }`}
+                  />
+                ))}
+              </button>
+            </Magnetic>
+
             <Magnetic strength={0.22} className="hidden sm:inline-flex">
               <a
                 href={URLS.taskpanel}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => studioSound.playClick()}
                 data-cursor="OPEN"
                 className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-5 font-condensed text-sm font-extrabold tracking-[0.1em] uppercase transition-all duration-200 active:scale-[0.97] ${ctaPill}`}
               >
@@ -178,7 +248,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
             <Magnetic strength={0.22}>
               <button
                 type="button"
-                onClick={() => setMenuOpen((prev) => !prev)}
+                onClick={handleToggleMenu}
                 aria-expanded={menuOpen}
                 aria-controls="fullscreen-studio-menu"
                 aria-label={menuOpen ? "Tutup menu" : "Buka menu"}
@@ -211,7 +281,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
         </div>
       </header>
 
-      {/* Full-Screen Kinetic Curtain Menu (Lando Norris / OFF+BRAND style) */}
+      {/* Full-Screen Kinetic Curtain Menu with Watermark Preview (OFF+BRAND style) */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -224,48 +294,93 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                 ? { duration: 0.15 }
                 : { duration: 0.52, ease: [0.76, 0, 0.24, 1] }
             }
-            className="fixed inset-0 z-40 flex flex-col justify-between bg-[#111112] px-4 pt-24 pb-8 text-[#F4F4EE] sm:px-8 sm:pt-28"
+            className="fixed inset-0 z-40 flex flex-col justify-between overflow-hidden bg-[#111112] px-4 pt-24 pb-8 text-[#F4F4EE] sm:px-8 sm:pt-28"
           >
+            {/* Dynamic Masked Background Index Watermark on Hover */}
+            <AnimatePresence mode="wait">
+              {hoveredScene && (
+                <motion.div
+                  key={hoveredScene.id}
+                  aria-hidden="true"
+                  initial={
+                    prefersReduced ? { opacity: 0 } : { opacity: 0, y: 36, scale: 0.94 }
+                  }
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={
+                    prefersReduced ? { opacity: 0 } : { opacity: 0, y: -24, scale: 0.96 }
+                  }
+                  transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+                  className="pointer-events-none fixed inset-0 flex items-center justify-end pr-6 select-none sm:pr-16"
+                >
+                  <span className="font-condensed text-[clamp(14rem,32vw,30rem)] leading-none font-extrabold tracking-[-0.06em] text-[#0258FF]/15">
+                    {hoveredScene.index}
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <nav
               aria-label="Menu layar penuh"
-              className="mx-auto my-auto w-full max-w-[1480px]"
+              className="relative z-10 mx-auto my-auto w-full max-w-[1480px]"
             >
               <ul className="divide-y divide-white/12 border-y border-white/12">
-                {SCENES.map((scene, idx) => (
-                  <li key={scene.id} className="overflow-hidden">
-                    <motion.a
-                      href={scene.href}
-                      onClick={() => setMenuOpen(false)}
-                      initial={prefersReduced ? false : { y: 40, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{
-                        ...MENU_SPRING,
-                        delay: prefersReduced ? 0 : 0.12 + idx * 0.06,
-                      }}
-                      className="group flex min-h-[76px] items-baseline justify-between gap-4 py-5 transition-colors sm:py-7"
-                    >
-                      <span className="flex items-baseline gap-4 sm:gap-8">
-                        <span className="font-mono text-xs tracking-[0.16em] text-[#A1A19C] transition-colors group-hover:text-[#0258FF] sm:text-sm">
-                          {scene.index}
+                {SCENES.map((scene, idx) => {
+                  const isRowHovered = hoveredScene?.id === scene.id;
+                  return (
+                    <li key={scene.id} className="relative overflow-hidden">
+                      <motion.a
+                        href={scene.href}
+                        onMouseEnter={() => {
+                          setHoveredScene(scene);
+                          studioSound.playHover();
+                        }}
+                        onMouseLeave={() => setHoveredScene(null)}
+                        onFocus={() => setHoveredScene(scene)}
+                        onBlur={() => setHoveredScene(null)}
+                        onClick={() => {
+                          studioSound.playClick();
+                          setMenuOpen(false);
+                          setHoveredScene(null);
+                        }}
+                        initial={prefersReduced ? false : { y: 40, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{
+                          ...MENU_SPRING,
+                          delay: prefersReduced ? 0 : 0.12 + idx * 0.06,
+                        }}
+                        className="group flex min-h-[76px] items-baseline justify-between gap-4 py-5 transition-colors sm:py-7"
+                      >
+                        <span className="flex items-baseline gap-4 sm:gap-8">
+                          <span className="font-mono text-xs tracking-[0.16em] text-[#A1A19C] transition-colors group-hover:text-[#0258FF] sm:text-sm">
+                            {scene.index}
+                          </span>
+                          <span className="font-condensed text-[clamp(2.5rem,1.4rem+5vw,5.4rem)] leading-[0.9] font-extrabold tracking-[-0.03em] uppercase text-[#F4F4EE] transition-transform duration-200 group-hover:translate-x-3 group-hover:text-[#0258FF]">
+                            {scene.label}
+                          </span>
                         </span>
-                        <span className="font-condensed text-[clamp(2.5rem,1.4rem+5vw,5.4rem)] leading-[0.9] font-extrabold tracking-[-0.03em] uppercase text-[#F4F4EE] transition-transform duration-200 group-hover:translate-x-3 group-hover:text-[#0258FF]">
-                          {scene.label}
-                        </span>
-                      </span>
-                      <ArrowUpRightIcon
-                        size={28}
-                        weight="bold"
+                        <ArrowUpRightIcon
+                          size={28}
+                          weight="bold"
+                          aria-hidden="true"
+                          className="shrink-0 text-[#A1A19C] transition-all duration-200 group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:text-[#0258FF]"
+                        />
+                      </motion.a>
+                      {/* Sweeping Electric Cobalt hairline divider */}
+                      <motion.span
                         aria-hidden="true"
-                        className="shrink-0 text-[#A1A19C] transition-all duration-200 group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:text-[#0258FF]"
+                        initial={false}
+                        animate={{ scaleX: isRowHovered ? 1 : 0 }}
+                        transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                        className="pointer-events-none absolute right-0 bottom-0 left-0 h-[2px] origin-left bg-[#0258FF]"
                       />
-                    </motion.a>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             </nav>
 
             {/* Bottom menu strip */}
-            <div className="mx-auto flex w-full max-w-[1480px] flex-wrap items-center justify-between gap-4 pt-6 text-xs">
+            <div className="relative z-10 mx-auto flex w-full max-w-[1480px] flex-wrap items-center justify-between gap-4 pt-6 text-xs">
               <div className="flex flex-wrap items-center gap-4">
                 <p className="font-editorial text-sm italic text-[#A1A19C]">
                   {IDENTITY.tagline}
@@ -280,6 +395,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                   href={URLS.taskpanel}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => studioSound.playClick()}
                   className="inline-flex min-h-[44px] items-center gap-1 font-condensed font-bold tracking-[0.16em] uppercase text-[#5C9AFF] hover:text-white"
                 >
                   <span>TASKPANEL</span>
@@ -289,6 +405,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                   href={URLS.login}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => studioSound.playClick()}
                   className="inline-flex min-h-[44px] items-center font-condensed font-bold tracking-[0.16em] uppercase text-[#F4F4EE] hover:text-[#5C9AFF]"
                 >
                   LOGIN
@@ -297,6 +414,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                   href={URLS.privacy}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => studioSound.playClick()}
                   className="inline-flex min-h-[44px] items-center font-condensed font-bold tracking-[0.16em] uppercase text-[#A1A19C] hover:text-white"
                 >
                   PRIVACY
@@ -305,6 +423,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                   href={URLS.terms}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => studioSound.playClick()}
                   className="inline-flex min-h-[44px] items-center font-condensed font-bold tracking-[0.16em] uppercase text-[#A1A19C] hover:text-white"
                 >
                   TERMS

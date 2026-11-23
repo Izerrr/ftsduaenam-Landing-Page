@@ -1,13 +1,18 @@
 interface FtsLogoProps {
   className?: string;
   decorative?: boolean;
+  numberText?: string;
 }
 
 /**
  * Clean, high-fashion motorsport-editorial monogram ("FTS26") inspired by LN4 / OFF+BRAND.
  * Uses currentColor + --logo-accent so it transitions effortlessly over Dark, Warm Bone, and Electric Cobalt.
  */
-export function FtsLogo({ className = "h-8 w-auto", decorative = true }: FtsLogoProps) {
+export function FtsLogo({
+  className = "h-8 w-auto",
+  decorative = true,
+  numberText = "26",
+}: FtsLogoProps) {
   return (
     <svg
       viewBox="0 0 132 38"
@@ -38,7 +43,7 @@ export function FtsLogo({ className = "h-8 w-auto", decorative = true }: FtsLogo
         points="54,31 64,7 70,7 60,31"
         fill="var(--logo-accent, #0258FF)"
       />
-      {/* High-contrast editorial serif 26 */}
+      {/* High-contrast editorial serif number */}
       <text
         x="73"
         y="30"
@@ -48,9 +53,10 @@ export function FtsLogo({ className = "h-8 w-auto", decorative = true }: FtsLogo
           fontStyle: "italic",
           fontSize: "34px",
           letterSpacing: "-0.03em",
+          fontVariantNumeric: "tabular-nums",
         }}
       >
-        26
+        {numberText}
       </text>
       {/* Accent period dot */}
       <circle cx="116" cy="27" r="3.5" fill="var(--logo-accent, #0258FF)" />

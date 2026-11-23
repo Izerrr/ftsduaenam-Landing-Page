@@ -56,15 +56,10 @@ export function StudioPreloader() {
             transition={{ duration: 0.3 }}
             className="flex flex-col items-center gap-5"
           >
-            <FtsLogo className="h-9 w-auto text-[#F4F4EE] sm:h-10" />
-            <div className="flex items-baseline gap-2.5">
-              <span className="font-condensed text-xs font-bold tracking-[0.24em] uppercase text-[#A1A19C]">
-                FTSDUAENAM
-              </span>
-              <span className="font-editorial text-2xl italic text-[#0258FF]">
-                {String(count).padStart(2, "0")}
-              </span>
-            </div>
+            <FtsLogo
+              numberText={String(count).padStart(2, "0")}
+              className="h-11 w-auto text-[#F4F4EE] sm:h-13"
+            />
             <div className="h-[2px] w-36 overflow-hidden rounded-full bg-white/15">
               <motion.div
                 initial={{ scaleX: 0 }}

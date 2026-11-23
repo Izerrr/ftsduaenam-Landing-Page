@@ -11,6 +11,7 @@ import { ArrowDownIcon } from "@phosphor-icons/react/ArrowDown";
 import { ArrowUpRightIcon } from "@phosphor-icons/react/ArrowUpRight";
 import { URLS } from "@/data/services";
 import { useScrollSkew } from "@/hooks/useScrollSkew";
+import { studioSound } from "@/lib/studioSound";
 
 interface PortalSceneProps {
   onFloodChange: (active: boolean) => void;
@@ -22,11 +23,22 @@ const FLOOD_SPRING = {
   damping: 26,
 };
 
+const BLOB_OUTER_REST =
+  "M320 62C424 54 532 108 564 206C596 304 548 424 468 498C388 572 264 596 172 544C80 492 48 378 66 270C84 162 216 70 320 62Z";
+const BLOB_OUTER_ACTIVE =
+  "M320 42C446 46 548 132 576 228C604 324 530 438 450 510C370 582 246 608 158 532C70 456 58 344 82 240C106 136 194 38 320 42Z";
+
+const BLOB_INNER_REST =
+  "M320 116C398 112 484 156 508 232C532 308 494 402 432 458C370 514 274 532 204 492C134 452 108 364 122 280C136 196 242 120 320 116Z";
+const BLOB_INNER_ACTIVE =
+  "M320 96C416 104 502 170 520 248C538 326 482 418 418 472C354 526 262 544 188 486C114 428 112 342 132 258C152 174 224 88 320 96Z";
+
 /**
  * Scene 02: THE SINGLE PORTAL (Warm Off-White #F4F4EE -> Electric Cobalt #0258FF Flood)
  * Features:
  * - Sheet-over-sheet parallax tuck (scales gently down as Scene 03 rises over it)
- * - Scroll-velocity typography skew + organic blob breathing morph on hover
+ * - Continuous infinite racing marquee strips that accelerate 2.8x on hover
+ * - Morphing organic contour blob + interactive cobalt specular glow following the pointer
  * - Full-bleed Electric Cobalt flood + spring-lagged floating studio preview pill
  */
 export function PortalScene({ onFloodChange }: PortalSceneProps) {
@@ -45,7 +57,7 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
     return () => mq.removeEventListener("change", sync);
   }, []);
 
-  // Full pass scroll for rotating contour + kinetic watermark strips
+  // Full pass scroll for rotating contour
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ["start end", "end start"],
@@ -62,8 +74,6 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
   const tuckOpacity = useTransform(exitProgress, [0.15, 1], [1, 0.58]);
 
   const blobRotate = useTransform(scrollYProgress, [0, 1], [-18, 22]);
-  const topBandX = useTransform(scrollYProgress, [0, 1], ["-6%", "8%"]);
-  const bottomBandX = useTransform(scrollYProgress, [0, 1], ["6%", "-8%"]);
 
   // Magnetic headline pull
   const magX = useMotionValue(0);
@@ -78,12 +88,26 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
   const cardY = useSpring(cardRawY, { stiffness: 160, damping: 22, mass: 0.8 });
 
   const setPortalActive = (next: boolean) => {
-    setEngaged(next);
+    setEngaged((prev) => {
+      if (prev !== next) {
+        studioSound.playFlood(next);
+      }
+      return next;
+    });
     onFloodChange(next);
     if (!next) {
       magX.set(0);
       magY.set(0);
     }
+  };
+
+  const handleSectionPointerMove = (event: React.PointerEvent<HTMLElement>) => {
+    if (prefersReduced || !sectionRef.current) return;
+    const rect = sectionRef.current.getBoundingClientRect();
+    const relX = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
+    const relY = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
+    sectionRef.current.style.setProperty("--px", `${relX.toFixed(2)}%`);
+    sectionRef.current.style.setProperty("--py", `${relY.toFixed(2)}%`);
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLAnchorElement>) => {
@@ -107,6 +131,7 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
       data-scene="portal"
       data-theme="light"
       data-portal-flood={engaged ? "true" : "false"}
+      onPointerMove={handleSectionPointerMove}
       className="relative z-10 flex min-h-[100dvh] w-full flex-col items-center justify-center overflow-hidden bg-[#F4F4EE] px-4 py-24 text-[#111112] sm:px-8"
     >
       {/* Full-bleed Electric Cobalt flood sweep on hover/focus */}
@@ -119,6 +144,18 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
         transition={prefersReduced ? { duration: 0.12 } : FLOOD_SPRING}
         style={{ transformOrigin: "50% 100%" }}
         className="pointer-events-none absolute inset-0 bg-[#0258FF]"
+      />
+
+      {/* Interactive Cobalt Specular Glow tracking cursor while flood is active */}
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${
+          engaged ? "opacity-100" : "opacity-0"
+        }`}
+        style={{
+          background:
+            "radial-gradient(560px circle at var(--px, 50%) var(--py, 50%), rgba(255, 255, 255, 0.22), rgba(92, 154, 255, 0.1) 42%, transparent 72%)",
+        }}
       />
 
       {/* Inner sheet that gently tucks back as Scene 03 rises over it */}
@@ -134,7 +171,7 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
         }
         className="relative flex w-full flex-1 flex-col items-center justify-center"
       >
-        {/* Organic vector blob contour rotating on scroll + breathing wider on hover */}
+        {/* Organic vector blob contour rotating on scroll + smoothly morphing shape on hover */}
         <motion.svg
           aria-hidden="true"
           viewBox="0 0 640 640"
@@ -149,50 +186,43 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
           }
           transition={FLOOD_SPRING}
           className={`pointer-events-none absolute h-[min(86vw,640px)] w-[min(86vw,640px)] transition-colors duration-200 ${
-            engaged ? "text-white/22" : "text-[#111112]/10"
+            engaged ? "text-white/25" : "text-[#111112]/10"
           }`}
         >
-          <path
-            d="M320 62C424 54 532 108 564 206C596 304 548 424 468 498C388 572 264 596 172 544C80 492 48 378 66 270C84 162 216 70 320 62Z"
+          <motion.path
+            initial={false}
+            animate={{ d: engaged ? BLOB_OUTER_ACTIVE : BLOB_OUTER_REST }}
+            transition={FLOOD_SPRING}
             stroke="currentColor"
             strokeWidth="1.4"
           />
-          <path
-            d="M320 116C398 112 484 156 508 232C532 308 494 402 432 458C370 514 274 532 204 492C134 452 108 364 122 280C136 196 242 120 320 116Z"
+          <motion.path
+            initial={false}
+            animate={{ d: engaged ? BLOB_INNER_ACTIVE : BLOB_INNER_REST }}
+            transition={FLOOD_SPRING}
             stroke="currentColor"
             strokeWidth="1"
             strokeDasharray="6 10"
           />
         </motion.svg>
 
-        {/* Scroll-driven top & bottom ghosted kinetic bands */}
-        <div
-          aria-hidden="true"
-          className={`pointer-events-none absolute inset-x-0 top-0 overflow-hidden py-2 transition-colors duration-200 ${
-            engaged ? "text-white/15" : "text-[#111112]/[0.06]"
-          }`}
-        >
-          <motion.p
-            style={prefersReduced ? undefined : { x: topBandX }}
-            className="w-max font-condensed text-3xl font-extrabold tracking-[0.14em] uppercase sm:text-5xl"
-          >
-            TASKPANEL &middot; FTS26 &middot; WORKSPACE &middot; TASKPANEL &middot; FTS26 &middot; WORKSPACE &middot;
-          </motion.p>
-        </div>
-
-        <div
-          aria-hidden="true"
-          className={`pointer-events-none absolute inset-x-0 bottom-0 overflow-hidden py-2 transition-colors duration-200 ${
-            engaged ? "text-white/15" : "text-[#111112]/[0.06]"
-          }`}
-        >
-          <motion.p
-            style={prefersReduced ? undefined : { x: bottomBandX }}
-            className="w-max font-condensed text-3xl font-extrabold tracking-[0.14em] uppercase sm:text-5xl"
-          >
-            FTSDUAENAM.WEB.ID &middot; 2026 &middot; FTSDUAENAM.WEB.ID &middot; 2026 &middot;
-          </motion.p>
-        </div>
+        {/* Continuous Infinite Racing Marquee Bands accelerating 2.8x on hover */}
+        <InfiniteBand
+          position="top"
+          direction={-1}
+          fast={engaged}
+          engaged={engaged}
+          prefersReduced={prefersReduced}
+          text="TASKPANEL · FTS26 · WORKSPACE · TASKPANEL · FTS26 · WORKSPACE · "
+        />
+        <InfiniteBand
+          position="bottom"
+          direction={1}
+          fast={engaged}
+          engaged={engaged}
+          prefersReduced={prefersReduced}
+          text="FTSDUAENAM.WEB.ID · 2026 · FTSDUAENAM.WEB.ID · 2026 · "
+        />
 
         {/* Centerpiece Single Portal */}
         <motion.div
@@ -213,6 +243,7 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
             target="_blank"
             rel="noopener noreferrer"
             data-cursor-hide="true"
+            onClick={() => studioSound.playClick()}
             onMouseEnter={() => setPortalActive(true)}
             onMouseLeave={() => setPortalActive(false)}
             onFocus={() => setPortalActive(true)}
@@ -285,6 +316,7 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
 
           <a
             href="#signal"
+            onClick={() => studioSound.playClick()}
             data-cursor="NEXT"
             className={`group mt-10 inline-flex min-h-[44px] items-center gap-2 rounded-full px-4 font-condensed text-xs font-bold tracking-[0.2em] uppercase transition-colors duration-200 ${
               engaged
@@ -324,5 +356,92 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
         </motion.div>
       )}
     </section>
+  );
+}
+
+interface InfiniteBandProps {
+  position: "top" | "bottom";
+  direction: 1 | -1;
+  fast: boolean;
+  engaged: boolean;
+  prefersReduced: boolean;
+  text: string;
+}
+
+function InfiniteBand({
+  position,
+  direction,
+  fast,
+  engaged,
+  prefersReduced,
+  text,
+}: InfiniteBandProps) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const copyRef = useRef<HTMLSpanElement>(null);
+  const fastRef = useRef(fast);
+
+  useEffect(() => {
+    fastRef.current = fast;
+  }, [fast]);
+
+  useEffect(() => {
+    if (prefersReduced || !trackRef.current || !copyRef.current) return;
+
+    let rafId = 0;
+    let lastTime = performance.now();
+    let offset = 0;
+    let speed = 42;
+
+    const tick = (now: number) => {
+      const dt = Math.min(0.05, (now - lastTime) / 1000);
+      lastTime = now;
+
+      const copyWidth = copyRef.current?.offsetWidth ?? 0;
+      if (copyWidth > 0) {
+        const targetSpeed = fastRef.current ? 118 : 42;
+        speed += (targetSpeed - speed) * 0.08;
+        offset += direction * speed * dt;
+
+        // Wrap cleanly within [-copyWidth, 0) for seamless continuous loop
+        if (offset <= -copyWidth) {
+          offset += copyWidth;
+        } else if (offset > 0) {
+          offset -= copyWidth;
+        }
+
+        if (trackRef.current) {
+          trackRef.current.style.transform = `translate3d(${offset}px, 0, 0)`;
+        }
+      }
+
+      rafId = window.requestAnimationFrame(tick);
+    };
+
+    rafId = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(rafId);
+  }, [direction, prefersReduced]);
+
+  return (
+    <div
+      aria-hidden="true"
+      className={`pointer-events-none absolute inset-x-0 overflow-hidden py-2 transition-colors duration-200 select-none ${
+        position === "top" ? "top-0" : "bottom-0"
+      } ${engaged ? "text-white/16" : "text-[#111112]/[0.06]"}`}
+    >
+      <div ref={trackRef} className="flex w-max will-change-transform">
+        <span
+          ref={copyRef}
+          className="shrink-0 pr-6 font-condensed text-3xl font-extrabold tracking-[0.14em] uppercase sm:text-5xl"
+        >
+          {text}
+        </span>
+        <span className="shrink-0 pr-6 font-condensed text-3xl font-extrabold tracking-[0.14em] uppercase sm:text-5xl">
+          {text}
+        </span>
+        <span className="shrink-0 pr-6 font-condensed text-3xl font-extrabold tracking-[0.14em] uppercase sm:text-5xl">
+          {text}
+        </span>
+      </div>
+    </div>
   );
 }
