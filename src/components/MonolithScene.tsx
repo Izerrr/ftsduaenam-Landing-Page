@@ -53,20 +53,23 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
 
   const { scrollYProgress } = useScroll({
     target: trackRef,
-    offset: ["start start", "end start"],
+    offset: ["start start", "end end"],
   });
 
-  // Scroll-linked focal transforms
-  const topLineX = useTransform(scrollYProgress, [0, 0.62], ["0%", "-14%"]);
-  const bottomLineX = useTransform(scrollYProgress, [0, 0.62], ["0%", "14%"]);
-  const heroScale = useTransform(scrollYProgress, [0, 0.68], [1, 1.12]);
-  const heroOpacity = useTransform(scrollYProgress, [0.36, 0.68], [1, 0]);
-  const monolithScale = useTransform(scrollYProgress, [0, 0.65], [1, 0.84]);
+  // Scroll-linked focal transforms timed exactly to the sticky travel window (0 -> 1)
+  const topLineX = useTransform(scrollYProgress, [0, 0.58], ["0%", "-16%"]);
+  const bottomLineX = useTransform(scrollYProgress, [0, 0.58], ["0%", "16%"]);
+  const heroScale = useTransform(scrollYProgress, [0, 0.62], [1, 1.12]);
+  const heroOpacity = useTransform(scrollYProgress, [0.22, 0.56], [1, 0]);
+  const monolithScale = useTransform(scrollYProgress, [0, 0.58], [1, 0.84]);
 
-  // Rounded transition panel synchronized with Scene 02
-  const portalScale = useTransform(scrollYProgress, [0.46, 0.96], [0.16, 1.04]);
-  const portalRadius = useTransform(scrollYProgress, [0.46, 0.9], [44, 0]);
-  const portalOpacity = useTransform(scrollYProgress, [0.42, 0.56], [0, 1]);
+  // Rounded portal card expands completely to 100% viewport right before Scene 02 enters
+  const portalScale = useTransform(scrollYProgress, [0.26, 0.96], [0.24, 1.02]);
+  const portalRadius = useTransform(scrollYProgress, [0.26, 0.92], [44, 0]);
+  const portalOpacity = useTransform(scrollYProgress, [0.22, 0.36], [0, 1]);
+  const portalInnerOpacity = useTransform(scrollYProgress, [0.32, 0.5, 0.84, 0.97], [0, 1, 1, 0]);
+  const portalInnerScale = useTransform(scrollYProgress, [0.32, 0.95], [0.88, 1.04]);
+  const portalBarScaleX = useTransform(scrollYProgress, [0.34, 0.88], [0.15, 1]);
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (prefersReduced || !stageRef.current) return;
@@ -241,7 +244,7 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
           </Magnetic>
         </motion.div>
 
-        {/* Rounded transition panel synchronized with Scene 02's cobalt flood */}
+        {/* Rounded transition card with typographic preview, filling 100% before Scene 02 */}
         {!prefersReduced && (
           <motion.div
             aria-hidden="true"
@@ -254,8 +257,56 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
               borderRadius: portalRadius,
               opacity: portalOpacity,
             }}
-            className="pointer-events-none absolute inset-0 z-30 origin-center"
-          />
+            className="pointer-events-none absolute inset-0 z-30 flex origin-center flex-col items-center justify-center overflow-hidden border border-[#111112]/10 shadow-2xl"
+          >
+            {/* Subtle organic contour inside the expanding portal card */}
+            <svg
+              viewBox="0 0 640 640"
+              fill="none"
+              className="pointer-events-none absolute h-[min(78vw,560px)] w-[min(78vw,560px)] text-[#111112]/[0.08]"
+            >
+              <path
+                d="M320 62C424 54 532 108 564 206C596 304 548 424 468 498C388 572 264 596 172 544C80 492 48 378 66 270C84 162 216 70 320 62Z"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+            </svg>
+
+            {/* Interior card typography & progress sweep */}
+            <motion.div
+              style={{
+                opacity: portalInnerOpacity,
+                scale: portalInnerScale,
+              }}
+              className="relative z-10 flex w-full max-w-[780px] flex-col items-center px-8 text-center"
+            >
+              <div className="mb-5 flex items-center gap-3 font-mono text-xs tracking-[0.22em] uppercase text-[#4A4A45]">
+                <span>02</span>
+                <span className="h-[1px] w-8 bg-[#111112]/30" />
+                <span>NEXT // WORKSPACE</span>
+              </div>
+
+              <div className="flex flex-wrap items-baseline justify-center gap-x-2.5 sm:gap-x-4">
+                <span className="font-condensed text-[clamp(3rem,1.8rem+7.5vw,7.4rem)] leading-[0.86] font-extrabold tracking-[-0.04em] uppercase text-[#111112]">
+                  TASK
+                </span>
+                <span className="font-editorial text-[clamp(3.2rem,1.9rem+8vw,7.8rem)] leading-[0.88] italic tracking-[-0.025em] text-[#004BE0]">
+                  PANEL
+                </span>
+              </div>
+
+              <div className="mt-6 h-[2px] w-48 overflow-hidden bg-[#111112]/15 sm:w-64">
+                <motion.div
+                  style={{ scaleX: portalBarScaleX }}
+                  className="h-full w-full origin-left bg-[#0258FF]"
+                />
+              </div>
+
+              <p className="mt-4 font-editorial text-base italic tracking-[0.04em] text-[#4A4A45] sm:text-lg">
+                {IDENTITY.tagline}
+              </p>
+            </motion.div>
+          </motion.div>
         )}
       </div>
     </section>

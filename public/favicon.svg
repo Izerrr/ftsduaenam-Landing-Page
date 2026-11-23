@@ -1,33 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <!-- Deep charcoal rounded canvas -->
   <rect width="64" height="64" rx="14" fill="#111112" />
-
-  <!-- Top tier: Geometric FTS + Electric Cobalt speed slash -->
-  <!-- F -->
-  <path d="M11 12H22V15.5H15V17.5H20.5V21H15V26H11V12Z" fill="#F4F4EE" />
-  <!-- T -->
-  <path d="M24 12H36V15.5H32V26H28V15.5H24V12Z" fill="#F4F4EE" />
-  <!-- S -->
-  <path
-    d="M38 12H48V15.5H41.5V17.3H48V26H38V22.5H44.5V20.5H38V12Z"
-    fill="#F4F4EE"
-  />
-  <!-- Speed slash -->
-  <polygon points="48.5,26 52.5,12 56,12 52,26" fill="#0258FF" />
-
-  <!-- Bottom tier: Bold geometric 26 + Cobalt dot -->
-  <!-- 2 -->
-  <path
-    d="M11 32H29V43.5H17.5V46.5H29V52H11V39.5H23V37H11V32Z"
-    fill="#F4F4EE"
-  />
-  <!-- 6 -->
-  <path
-    fill-rule="evenodd"
-    clip-rule="evenodd"
-    d="M32 32H47.5V37H37.5V40H47.5V52H32V32ZM37.5 44V47.5H42.5V44H37.5Z"
-    fill="#F4F4EE"
-  />
-  <!-- Cobalt accent dot -->
-  <circle cx="52.5" cy="48.5" r="3.5" fill="#0258FF" />
+  <!-- Bold geometric F -->
+  <path d="M7 20H18V24.2H11.2V29.6H16.8V33.8H11.2V44H7V20Z" fill="#F4F4EE" />
+  <!-- Bold geometric T -->
+  <path d="M20 20H33V24.2H28.7V44H24.3V24.2H20V20Z" fill="#F4F4EE" />
+  <!-- Bold geometric S -->
+  <path d="M35 20H46V24.2H39.2V29.8H46V44H35V39.8H41.8V34H35V20Z" fill="#F4F4EE" />
+  <!-- Electric Cobalt forward speed slash / -->
+  <polygon points="47.5,46 53.5,18 57.5,18 51.5,46" fill="#0258FF" />
 </svg>
