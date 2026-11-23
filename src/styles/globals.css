@@ -66,12 +66,12 @@
   z-index: 100;
   background-color: var(--color-cobalt);
   color: #ffffff;
+  border-radius: 5px;
   padding: 0.65rem 1.25rem;
   font-family: var(--font-condensed);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
 }
 
 /* Hide OS cursor on fine-pointer desktop when custom triangular StudioCursor is active */
@@ -82,27 +82,13 @@
   }
 }
 
-/* Architectural 45-degree chamfered corner cut echoing the FTS / 26 slash motif */
+/* Tailored editorial micro-radius (replaces both generic pills and sci-fi polygon chamfers) */
 .chamfer-sm {
-  clip-path: polygon(
-    6px 0,
-    100% 0,
-    100% calc(100% - 6px),
-    calc(100% - 6px) 100%,
-    0 100%,
-    0 6px
-  );
+  border-radius: 5px;
 }
 
 .chamfer-md {
-  clip-path: polygon(
-    10px 0,
-    100% 0,
-    100% calc(100% - 10px),
-    calc(100% - 10px) 100%,
-    0 100%,
-    0 10px
-  );
+  border-radius: 6px;
 }
 
 /* Native CSS scroll-driven progress hairline (progressive enhancement) */

@@ -3,17 +3,18 @@ import { motion, useReducedMotion } from "motion/react";
 interface KineticTextProps {
   text: string;
   className?: string;
-  hoverColor?: string;
+  hoverClassName?: string;
 }
 
 /**
  * Splits a display word into individually spring-reactive glyphs while preserving
  * an accessible whole-word aria-label for screen readers.
+ * Keeps hover transforms purely geometric so parent CSS hover colors stay 100% uniform.
  */
 export function KineticText({
   text,
   className = "",
-  hoverColor,
+  hoverClassName = "",
 }: KineticTextProps) {
   const prefersReduced = Boolean(useReducedMotion());
 
@@ -29,11 +30,10 @@ export function KineticText({
               : {
                   y: -8,
                   scale: 1.05,
-                  ...(hoverColor ? { color: hoverColor } : {}),
                 }
           }
           transition={{ type: "spring", stiffness: 460, damping: 18 }}
-          className="inline-block will-change-transform"
+          className={`inline-block will-change-transform ${hoverClassName}`}
         >
           {char === " " ? "\u00A0" : char}
         </motion.span>

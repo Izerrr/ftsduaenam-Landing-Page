@@ -230,11 +230,18 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
           className="relative z-10 flex w-full max-w-[1440px] flex-col items-center text-center"
         >
           <p
-            className={`mb-4 font-condensed text-xs font-bold tracking-[0.26em] uppercase transition-colors duration-200 sm:mb-5 sm:text-sm ${
+            className={`mb-4 flex items-baseline gap-2 font-condensed text-xs font-bold tracking-[0.24em] uppercase transition-colors duration-200 sm:mb-5 sm:text-sm ${
               engaged ? "text-white" : "text-[#4A4A45]"
             }`}
           >
-            02 / WORKSPACE
+            <span
+              className={`font-editorial text-base italic tracking-normal ${
+                engaged ? "text-white" : "text-[#004BE0]"
+              }`}
+            >
+              02.
+            </span>
+            <span>WORKSPACE</span>
           </p>
 
           <motion.a
@@ -386,18 +393,35 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
             href="#signal"
             onClick={() => studioSound.playClick()}
             data-cursor="NEXT"
-            className={`chamfer-sm group mt-8 inline-flex min-h-[44px] items-center gap-2 border px-4 font-condensed text-xs font-bold tracking-[0.2em] uppercase transition-colors duration-200 ${
+            className={`group mt-8 inline-flex min-h-[44px] flex-col items-center gap-1.5 px-4 py-1 no-underline transition-colors duration-200 ${
               engaged
-                ? "border-white/30 text-white hover:border-white hover:bg-white/15"
-                : "border-[#111112]/20 text-[#4A4A45] hover:border-[#111112] hover:text-[#111112]"
+                ? "text-white/90 hover:text-white"
+                : "text-[#4A4A45] hover:text-[#111112]"
             }`}
           >
-            <span>03 / CONTACT</span>
-            <ArrowDownIcon
-              size={14}
-              weight="bold"
+            <span className="flex items-baseline gap-2">
+              <span
+                className={`font-editorial text-sm italic ${
+                  engaged ? "text-white" : "text-[#004BE0]"
+                }`}
+              >
+                03.
+              </span>
+              <span className="font-condensed text-xs font-extrabold tracking-[0.22em] uppercase">
+                CONTACT
+              </span>
+              <ArrowDownIcon
+                size={12}
+                weight="bold"
+                aria-hidden="true"
+                className="transition-transform duration-200 group-hover:translate-y-1"
+              />
+            </span>
+            <span
               aria-hidden="true"
-              className="transition-transform duration-200 group-hover:translate-y-1"
+              className={`block h-[1.5px] w-10 origin-left transition-all duration-200 group-hover:w-full ${
+                engaged ? "bg-white/45 group-hover:bg-white" : "bg-[#111112]/25 group-hover:bg-[#004BE0]"
+              }`}
             />
           </a>
         </motion.div>

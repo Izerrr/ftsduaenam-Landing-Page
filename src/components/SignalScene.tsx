@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { motion, useReducedMotion, useScroll } from "motion/react";
+import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { ArrowUpIcon } from "@phosphor-icons/react/ArrowUp";
 import { ArrowUpRightIcon } from "@phosphor-icons/react/ArrowUpRight";
 import { CheckIcon } from "@phosphor-icons/react/Check";
@@ -40,6 +40,9 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
     offset: ["start end", "end end"],
   });
 
+  // Flatten top rounded shoulders cleanly right as Scene 03 reaches the top of the viewport
+  const topCornerRadius = useTransform(scrollYProgress, [0.75, 0.98], [36, 0]);
+
   const handleCopyEmail = async () => {
     try {
       await navigator.clipboard.writeText(URLS.emailDisplay);
@@ -57,31 +60,42 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
   };
 
   return (
-    <div className="relative z-20 -mt-px bg-[#F4F4EE]">
-      {/* Synchronized Electric Cobalt continuation behind the rounded top shoulders */}
-      <motion.div
-        aria-hidden="true"
-        initial={false}
-        animate={{ opacity: portalFloodActive ? 1 : 0 }}
-        transition={
-          prefersReduced
-            ? { duration: 0.1 }
-            : { duration: 0.24, ease: [0.22, 1, 0.36, 1] }
-        }
-        className="pointer-events-none absolute inset-0 bg-[#0258FF]"
-      />
-
-      <footer
+    <motion.div
+      initial={false}
+      animate={{
+        backgroundColor: portalFloodActive ? "#0258FF" : "#F4F4EE",
+      }}
+      transition={
+        prefersReduced
+          ? { duration: 0.04 }
+          : portalFloodActive
+            ? { duration: 0.01 }
+            : { duration: 0.14, delay: 0.24 }
+      }
+      className="relative z-20 -mt-px"
+    >
+      <motion.footer
         ref={footerRef}
         id="signal"
         data-scene="signal"
         data-theme="dark"
-        className="relative z-10 flex min-h-[100dvh] w-full flex-col justify-between overflow-hidden border-t border-white/15 bg-[#111112] px-4 pt-24 pb-10 text-[#F4F4EE] sm:px-8 sm:pb-12"
+        style={
+          prefersReduced
+            ? undefined
+            : {
+                borderTopLeftRadius: topCornerRadius,
+                borderTopRightRadius: topCornerRadius,
+              }
+        }
+        className="relative z-10 flex min-h-[100dvh] w-full flex-col justify-between overflow-hidden bg-[#111112] px-4 pt-24 pb-10 text-[#F4F4EE] sm:px-8 sm:pb-12"
       >
         {/* Top index */}
-        <div className="mx-auto w-full max-w-[1440px] text-center">
-          <p className="font-condensed text-xs font-bold tracking-[0.26em] uppercase text-[#A1A19C] sm:text-sm">
-            03 / CONTACT
+        <div className="mx-auto flex w-full max-w-[1440px] items-baseline justify-center gap-2 text-center">
+          <span className="font-editorial text-base italic text-[#0258FF]">
+            03.
+          </span>
+          <p className="font-condensed text-xs font-bold tracking-[0.24em] uppercase text-[#A1A19C] sm:text-sm">
+            CONTACT
           </p>
         </div>
 
@@ -130,7 +144,7 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
                 transition={HOVER_SPRING}
                 className="pb-2 font-editorial text-[clamp(3.5rem,1.7rem+10.5vw,7.8rem)] leading-[0.88] italic tracking-[-0.02em] text-[#F4F4EE] transition-colors duration-200 group-hover:text-[#0258FF] md:text-[clamp(6.3rem,2.4rem+10.2vw,13.6rem)]"
               >
-                <KineticText text="TACT" hoverColor="#0258FF" />
+                <KineticText text="TACT" />
               </motion.span>
             </span>
 
@@ -255,7 +269,7 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
             </div>
           </div>
         </div>
-      </footer>
-    </div>
+      </motion.footer>
+    </motion.div>
   );
 }

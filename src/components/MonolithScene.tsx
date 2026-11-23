@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  AnimatePresence,
   motion,
   useMotionValue,
+  useMotionValueEvent,
   useReducedMotion,
   useScroll,
   useSpring,
   useTransform,
-  type MotionValue,
 } from "motion/react";
 import { ArrowDownIcon } from "@phosphor-icons/react/ArrowDown";
 import { IDENTITY } from "@/data/services";
@@ -14,80 +15,138 @@ import { SignatureDraw } from "@/components/SignatureDraw";
 import { Magnetic } from "@/components/Magnetic";
 import { KineticText } from "@/components/KineticText";
 import { useScrollSkew } from "@/hooks/useScrollSkew";
-import { subscribeSynthSlice } from "@/lib/studioEvents";
 import { studioSound } from "@/lib/studioSound";
 
 const ENTER_SPRING = {
   type: "spring" as const,
-  stiffness: 180,
+  stiffness: 170,
   damping: 26,
 };
 
-const AXIS_CENTERS = [0.1, 0.3, 0.5, 0.7, 0.9];
+type HeroVariant = "ribbon" | "spread" | "kinetic";
+
+const VARIANT_ORDER: readonly HeroVariant[] = [
+  "ribbon",
+  "spread",
+  "kinetic",
+] as const;
+
+const CYCLE_DURATION_MS = 4400;
 
 interface MonolithSceneProps {
-  portalFloodActive: boolean;
+  onCobaltCoverChange?: (covered: boolean) => void;
 }
 
 /**
  * Scene 01: HERO MONOLITH (Deep Charcoal #111112)
- * OFF+BRAND editorial-brutalist architecture:
- * - Sweeping 3D topographic vector contour field + 5 open vertical hairline telemetry axes (no rounded card boxes)
- * - Asymmetric two-tier monumental lockup (FTS /26. + DUAENAM .web.id) with opposite horizontal scroll parallax
- * - Full-width architectural datum header & bottom ledger with chamfered 02 / WORKSPACE trigger
+ * Automatically choreographs and cycles between 3 non-techy editorial compositions
+ * (OFF+BRAND Ribbon -> Editorial Spread -> Kinetic Showreel), then rises through a distinct
+ * Electric Cobalt (#0258FF) serif Workspace interlude into Scene 02.
  */
-export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
+export function MonolithScene({ onCobaltCoverChange }: MonolithSceneProps) {
   const trackRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const prefersReduced = Boolean(useReducedMotion());
   const scrollSkew = useScrollSkew(2.8);
   const [overdrive, setOverdrive] = useState(false);
+  const [variantIdx, setVariantIdx] = useState(0);
+  const cobaltCoverRef = useRef(false);
 
-  // Normalized pointer tracking (0..1) via MotionValues + Springs (zero React re-renders)
+  const variant = VARIANT_ORDER[variantIdx];
+
+  // Smooth cursor parallax (0..1)
   const rawXNorm = useMotionValue(0.5);
   const rawYNorm = useMotionValue(0.5);
-  const pointerActive = useMotionValue(0);
-  const overdriveRaw = useMotionValue(0);
+  const smoothXNorm = useSpring(rawXNorm, { stiffness: 120, damping: 24 });
+  const smoothYNorm = useSpring(rawYNorm, { stiffness: 120, damping: 24 });
 
-  const smoothXNorm = useSpring(rawXNorm, { stiffness: 150, damping: 24 });
-  const smoothYNorm = useSpring(rawYNorm, { stiffness: 140, damping: 24 });
-  const smoothActive = useSpring(pointerActive, { stiffness: 180, damping: 24 });
-  const smoothOverdrive = useSpring(overdriveRaw, { stiffness: 220, damping: 22 });
-
-  // 3D perspective parallax for the topographic vector contour field
-  const contourRotateY = useTransform(smoothXNorm, [0, 1], [-7, 7]);
-  const contourRotateX = useTransform(smoothYNorm, [0, 1], [6, -6]);
-  const contourShiftX = useTransform(smoothXNorm, [0, 1], [18, -18]);
-  const contourShiftY = useTransform(smoothYNorm, [0, 1], [14, -14]);
+  // Soft organic parallax for background hand-drawn vector ribbons
+  const ribbonX = useTransform(smoothXNorm, [0, 1], [24, -24]);
+  const ribbonY = useTransform(smoothYNorm, [0, 1], [18, -18]);
+  const ribbonRotate = useTransform(smoothXNorm, [0, 1], [-3.5, 3.5]);
+  const serifFloatX = useTransform(smoothXNorm, [0, 1], [-10, 10]);
+  const serifFloatY = useTransform(smoothYNorm, [0, 1], [-7, 7]);
 
   const { scrollYProgress } = useScroll({
     target: trackRef,
     offset: ["start start", "end end"],
   });
 
-  // Scroll-linked focal transforms timed to the sticky travel window (0 -> 1)
-  const topRowX = useTransform(scrollYProgress, [0, 0.58], ["0%", "-14%"]);
-  const bottomRowX = useTransform(scrollYProgress, [0, 0.58], ["0%", "14%"]);
-  const contourScrollRotate = useTransform(scrollYProgress, [0, 0.7], [-8, 18]);
-  const heroScale = useTransform(scrollYProgress, [0, 0.62], [1, 1.08]);
-  const heroOpacity = useTransform(scrollYProgress, [0.22, 0.56], [1, 0]);
-  const backdropScale = useTransform(scrollYProgress, [0, 0.58], [1, 0.88]);
+  // Tracks Monolith unsticking upward after 02 Cobalt card is fully loaded
+  const { scrollYProgress: exitProgress } = useScroll({
+    target: trackRef,
+    offset: ["end end", "end start"],
+  });
 
-  // Architectural portal frame expands to 100% viewport right before Scene 02 enters
-  const portalScale = useTransform(scrollYProgress, [0.26, 0.96], [0.24, 1.02]);
-  const portalRadius = useTransform(scrollYProgress, [0.26, 0.92], [14, 0]);
-  const portalOpacity = useTransform(scrollYProgress, [0.22, 0.36], [0, 1]);
-  const portalInnerOpacity = useTransform(
-    scrollYProgress,
-    [0.32, 0.5, 0.84, 0.97],
-    [0, 1, 1, 0]
-  );
-  const portalInnerScale = useTransform(scrollYProgress, [0.32, 0.95], [0.88, 1.04]);
-  const portalBarScaleX = useTransform(scrollYProgress, [0.34, 0.88], [0.15, 1]);
-
+  // Keep TopBar contrast synced while the #0258FF bridge card sits behind the header
   useEffect(() => {
-    overdriveRaw.set(overdrive ? 1 : 0);
-  }, [overdrive, overdriveRaw]);
+    const syncCover = () => {
+      const rect = trackRef.current?.getBoundingClientRect();
+      const covered =
+        !prefersReduced &&
+        Boolean(rect) &&
+        rect!.bottom > 64 &&
+        scrollYProgress.get() >= 0.54;
+      if (covered !== cobaltCoverRef.current) {
+        cobaltCoverRef.current = covered;
+        onCobaltCoverChange?.(covered);
+      }
+    };
+
+    syncCover();
+    window.addEventListener("scroll", syncCover, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", syncCover);
+      onCobaltCoverChange?.(false);
+    };
+  }, [onCobaltCoverChange, prefersReduced, scrollYProgress]);
+
+  useMotionValueEvent(scrollYProgress, "change", (latest) => {
+    const rect = trackRef.current?.getBoundingClientRect();
+    const covered =
+      !prefersReduced &&
+      Boolean(rect) &&
+      rect!.bottom > 64 &&
+      latest >= 0.54;
+    if (covered !== cobaltCoverRef.current) {
+      cobaltCoverRef.current = covered;
+      onCobaltCoverChange?.(covered);
+    }
+  });
+
+  // Automatic 3-composition showreel rotation
+  useEffect(() => {
+    if (prefersReduced) return;
+    const timer = window.setInterval(() => {
+      setVariantIdx((prev) => (prev + 1) % VARIANT_ORDER.length);
+    }, CYCLE_DURATION_MS);
+    return () => window.clearInterval(timer);
+  }, [prefersReduced]);
+
+  // Scroll-linked focal transforms timed to the sticky travel window (0 -> 1)
+  const topLineX = useTransform(scrollYProgress, [0, 0.58], ["0%", "-15%"]);
+  const bottomLineX = useTransform(scrollYProgress, [0, 0.58], ["0%", "15%"]);
+  const heroScale = useTransform(scrollYProgress, [0, 0.62], [1, 1.09]);
+  const heroOpacity = useTransform(scrollYProgress, [0.22, 0.56], [1, 0]);
+  const bgRibbonScale = useTransform(scrollYProgress, [0, 0.58], [1, 1.16]);
+
+  // Smooth Electric Cobalt bridge card rising out of Hero before Scene 02:
+  // keeps "Workspace" 100% visible when loaded, only dissolving right before reaching TopBar on exit
+  const portalScale = useTransform(scrollYProgress, [0.24, 0.94], [0.22, 1.02]);
+  const portalRadius = useTransform(scrollYProgress, [0.24, 0.9], [20, 0]);
+  const portalOpacity = useTransform(scrollYProgress, [0.2, 0.34], [0, 1]);
+  const portalInnerOpacity = useTransform(scrollYProgress, [0.32, 0.5], [0, 1]);
+  const portalExitOpacity = useTransform(exitProgress, [0.24, 0.44], [1, 0]);
+  const portalInnerScale = useTransform(
+    scrollYProgress,
+    [0.32, 0.9],
+    [0.9, 1]
+  );
+  const portalBarScaleX = useTransform(
+    scrollYProgress,
+    [0.34, 0.86],
+    [0.12, 1]
+  );
 
   useEffect(() => {
     if (!overdrive) return;
@@ -117,13 +176,11 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
 
     rawXNorm.set(relX);
     rawYNorm.set(relY);
-    pointerActive.set(1);
   };
 
   const handlePointerLeave = () => {
     rawXNorm.set(0.5);
     rawYNorm.set(0.5);
-    pointerActive.set(0);
     if (overdrive) {
       setOverdrive(false);
       studioSound.playOverdrive(false);
@@ -145,7 +202,7 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
       data-scene="monolith"
       data-theme="dark"
       className={`relative bg-[#111112] text-[#F4F4EE] ${
-        prefersReduced ? "min-h-[100dvh]" : "min-h-[188dvh]"
+        prefersReduced ? "min-h-[100dvh]" : "min-h-[158dvh]"
       }`}
     >
       <div
@@ -153,109 +210,58 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
         onPointerMove={handlePointerMove}
         onPointerLeave={handlePointerLeave}
         onPointerDown={handlePointerDown}
-        className="sticky top-0 flex h-[100dvh] w-full flex-col justify-between overflow-hidden px-4 pt-22 pb-7 sm:px-8 sm:pt-26 sm:pb-9"
+        className="sticky top-0 flex h-[100dvh] w-full flex-col items-center justify-center overflow-hidden px-4 sm:px-8"
       >
-        {/* Architectural Backdrop: Topographic Vector Contours + 5 Open Vertical Telemetry Axes */}
+        {/* Flowing Hand-Drawn OFF+BRAND Vector Ribbon Backdrop */}
         <motion.div
           aria-hidden="true"
           style={
             prefersReduced
               ? undefined
               : {
-                  scale: backdropScale,
                   opacity: heroOpacity,
-                  perspective: 1200,
+                  scale: bgRibbonScale,
+                  x: ribbonX,
+                  y: ribbonY,
+                  rotate: ribbonRotate,
                 }
           }
           className="pointer-events-none absolute inset-0 flex items-center justify-center"
         >
-          {/* Open 5-column vertical hairline telemetry grid (no rounded card boxes) */}
-          <div className="mx-auto grid h-full w-full max-w-[1440px] grid-cols-5 px-4 sm:px-8">
-            {AXIS_CENTERS.map((center, idx) => (
-              <TelemetryAxis
-                key={idx}
-                index={idx}
-                center={center}
-                pointerX={smoothXNorm}
-                pointerActive={smoothActive}
-                overdrive={smoothOverdrive}
-                prefersReduced={prefersReduced}
-              />
-            ))}
-          </div>
-
-          {/* 3D Topographic Vector Contour Rings (mirrors Scene 02 organic vector linework) */}
-          <motion.svg
-            viewBox="0 0 1200 760"
+          <svg
+            viewBox="0 0 1440 900"
             fill="none"
-            style={
-              prefersReduced
-                ? undefined
-                : {
-                    rotateX: contourRotateX,
-                    rotateY: contourRotateY,
-                    rotateZ: contourScrollRotate,
-                    x: contourShiftX,
-                    y: contourShiftY,
-                  }
-            }
-            className="pointer-events-none absolute h-[min(88vw,760px)] w-[min(94vw,1200px)] overflow-visible"
+            className="h-[min(92vh,860px)] w-[min(96vw,1440px)] overflow-visible"
           >
-            {/* Outer architectural contour */}
             <path
-              d="M 600 74 C 860 58 1090 164 1126 356 C 1162 548 984 686 648 704 C 312 722 92 590 74 388 C 56 186 340 90 600 74 Z"
-              stroke="rgba(244, 244, 238, 0.08)"
-              strokeWidth="1.2"
-            />
-            {/* Mid dashed telemetry orbit */}
-            <path
-              d="M 600 148 C 812 136 994 218 1020 368 C 1046 518 898 624 632 636 C 366 648 186 544 172 386 C 158 228 388 160 600 148 Z"
-              stroke={overdrive ? "rgba(92, 154, 255, 0.65)" : "rgba(2, 88, 255, 0.36)"}
+              d="M 180 690 C 80 490 250 180 610 150 C 970 120 1290 260 1260 490 C 1230 720 890 790 550 750 C 310 722 245 815 180 690 Z"
+              stroke="rgba(244, 244, 238, 0.07)"
               strokeWidth="1.4"
-              strokeDasharray="8 12"
-              className="transition-colors duration-200"
             />
-            {/* Inner high-tension vector ring */}
+
+            <motion.path
+              d="M -60 640 C 240 720 420 190 730 240 C 1040 290 910 680 1210 580 C 1360 530 1450 340 1520 260"
+              stroke={overdrive ? "#5C9AFF" : "#0258FF"}
+              strokeWidth={overdrive ? "3.2" : "2"}
+              strokeLinecap="round"
+              initial={prefersReduced ? false : { pathLength: 0, opacity: 0 }}
+              animate={{
+                pathLength: 1,
+                opacity: overdrive ? 0.85 : 0.45,
+              }}
+              transition={{ duration: 1.35, ease: [0.22, 1, 0.36, 1] }}
+            />
+
             <path
-              d="M 600 226 C 756 218 892 278 912 384 C 932 490 818 564 618 572 C 418 580 286 502 276 388 C 266 274 444 234 600 226 Z"
-              stroke={overdrive ? "rgba(244, 244, 238, 0.34)" : "rgba(244, 244, 238, 0.13)"}
+              d="M 110 220 C 440 90 790 670 1310 350"
+              stroke="rgba(244, 244, 238, 0.05)"
               strokeWidth="1"
-              className="transition-colors duration-200"
+              strokeLinecap="round"
             />
-            {/* Diagonal speed datum slash across center */}
-            <line
-              x1="210"
-              y1="610"
-              x2="990"
-              y2="150"
-              stroke="rgba(2, 88, 255, 0.2)"
-              strokeWidth="1"
-            />
-          </motion.svg>
+          </svg>
         </motion.div>
 
-        {/* Top Architectural Datum Rail */}
-        <motion.div
-          style={prefersReduced ? undefined : { opacity: heroOpacity }}
-          className="relative z-10 mx-auto flex w-full max-w-[1440px] items-center justify-between border-b border-white/12 pb-3"
-        >
-          <div className="flex items-center gap-2.5">
-            <span className="h-2 w-2 bg-[#0258FF]" />
-            <span className="font-mono text-[11px] tracking-[0.2em] uppercase text-[#F4F4EE]">
-              01 / MONOLITH
-            </span>
-          </div>
-
-          <span className="hidden font-mono text-[11px] tracking-[0.22em] uppercase text-[#A1A19C] sm:inline">
-            {IDENTITY.domain}
-          </span>
-
-          <span className="font-condensed text-xs font-extrabold tracking-[0.22em] uppercase text-[#A1A19C]">
-            {IDENTITY.code}
-          </span>
-        </motion.div>
-
-        {/* Centerpiece: Asymmetric Monumental Split-Voice Editorial Typography */}
+        {/* AUTO-CYCLING 3-COMPOSITION HERO STAGE */}
         <motion.div
           style={
             prefersReduced
@@ -266,133 +272,245 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
                   skewY: scrollSkew,
                 }
           }
-          className="relative z-10 mx-auto my-auto flex w-full max-w-[1440px] flex-col justify-center py-4 select-none"
+          className="relative z-10 mx-auto flex min-h-[380px] w-full max-w-[1400px] flex-col items-center justify-center select-none sm:min-h-[440px]"
         >
-          <h1
-            id="konten-utama"
-            tabIndex={-1}
-            className="relative flex w-full flex-col focus:outline-none"
-          >
-            {/* Tier 1: Left-anchored FTS + Editorial /26. + Sweeping Vector Signature */}
-            <motion.span
-              initial={prefersReduced ? false : { y: 44, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ ...ENTER_SPRING, delay: 0.44 }}
-              style={prefersReduced ? undefined : { x: topRowX }}
-              className="flex flex-wrap items-baseline justify-center gap-x-3 sm:gap-x-6 md:justify-start md:pl-[4%]"
-            >
-              <span className="font-condensed text-[clamp(4.4rem,2rem+12.5vw,9.2rem)] leading-[0.8] font-extrabold tracking-[-0.045em] uppercase text-[#F4F4EE] md:text-[clamp(7.5rem,2.5rem+12.8vw,15.8rem)]">
-                <KineticText text="FTS" hoverColor="#5C9AFF" />
-              </span>
-
-              <span className="flex items-baseline gap-1 font-editorial text-[clamp(3.2rem,1.5rem+8.5vw,6.4rem)] leading-[0.82] italic tracking-[-0.03em] text-[#0258FF] md:text-[clamp(5.2rem,2rem+8.8vw,10.8rem)]">
-                <span>/</span>
-                <span>26.</span>
-              </span>
-
-              <motion.span
-                animate={
-                  prefersReduced ? undefined : { scale: overdrive ? 1.08 : 1 }
-                }
-                transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                className="hidden self-center pl-2 lg:inline-flex"
+          <AnimatePresence mode="wait">
+            {variant === "ribbon" && (
+              <motion.div
+                key="ribbon"
+                initial={{ opacity: 0, y: 20, filter: "blur(6px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                exit={{ opacity: 0, y: -20, filter: "blur(6px)" }}
+                transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
+                className="flex w-full flex-col items-center text-center"
               >
-                <SignatureDraw
-                  trigger="mount"
-                  stroke={overdrive ? "#5C9AFF" : "#0258FF"}
-                  className="h-12 w-auto transition-colors duration-200 xl:h-15"
-                />
-              </motion.span>
-            </motion.span>
+                <h1
+                  id="konten-utama"
+                  tabIndex={-1}
+                  className="relative flex flex-col items-center focus:outline-none"
+                >
+                  <motion.span
+                    initial={prefersReduced ? false : { y: 32, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={ENTER_SPRING}
+                    style={prefersReduced ? undefined : { x: topLineX }}
+                    className="block font-condensed text-[clamp(4.4rem,2rem+12.8vw,9.2rem)] leading-[0.78] font-extrabold tracking-[-0.045em] uppercase text-[#F4F4EE] md:text-[clamp(7.5rem,2.6rem+13vw,16.4rem)]"
+                  >
+                    <KineticText
+                      text="FTS"
+                      hoverClassName="transition-colors duration-150 hover:text-[#5C9AFF]"
+                    />
+                  </motion.span>
 
-            {/* Tier 2: Right-anchored DUAENAM + .web.id with razor cobalt baseline */}
-            <motion.span
-              initial={prefersReduced ? false : { y: 44, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ ...ENTER_SPRING, delay: 0.52 }}
-              style={prefersReduced ? undefined : { x: bottomRowX }}
-              className="mt-1 flex flex-wrap items-baseline justify-center gap-x-3 sm:mt-0 sm:gap-x-5 md:justify-end md:pr-[3%]"
-            >
-              <span className="relative inline-flex flex-col items-start">
-                <span className="font-editorial text-[clamp(2.2rem,1.1rem+5.2vw,4.4rem)] leading-[0.95] italic tracking-[-0.02em] text-[#5C9AFF] md:text-[clamp(3.4rem,1.4rem+5vw,6.4rem)]">
-                  .web.id
-                </span>
-                <span
-                  aria-hidden="true"
-                  className="mt-1 block h-[2px] w-full bg-[#0258FF]"
-                />
-              </span>
+                  <motion.span
+                    style={
+                      prefersReduced
+                        ? undefined
+                        : { x: serifFloatX, y: serifFloatY }
+                    }
+                    className="relative z-20 -my-3 flex items-center gap-3 sm:-my-5 sm:gap-5"
+                  >
+                    <span className="font-editorial text-[clamp(2.6rem,1.2rem+6.2vw,5.4rem)] leading-none italic tracking-[-0.025em] text-[#0258FF] md:text-[clamp(4.4rem,1.8rem+5.8vw,8.6rem)]">
+                      .web.id
+                    </span>
+                    <SignatureDraw
+                      trigger="mount"
+                      stroke={overdrive ? "#5C9AFF" : "#F4F4EE"}
+                      className="hidden h-9 w-auto opacity-85 sm:block md:h-12"
+                    />
+                  </motion.span>
 
-              <span className="font-condensed text-[clamp(4.2rem,1.9rem+12vw,8.8rem)] leading-[0.8] font-extrabold tracking-[-0.045em] uppercase text-[#F4F4EE] md:text-[clamp(7.2rem,2.4rem+12.2vw,15.2rem)]">
-                <KineticText text="DUAENAM" hoverColor="#5C9AFF" />
-              </span>
-            </motion.span>
-          </h1>
+                  <motion.span
+                    initial={prefersReduced ? false : { y: 32, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={ENTER_SPRING}
+                    style={prefersReduced ? undefined : { x: bottomLineX }}
+                    className="block font-condensed text-[clamp(4.4rem,2rem+12.8vw,9.2rem)] leading-[0.78] font-extrabold tracking-[-0.045em] uppercase text-[#F4F4EE] md:text-[clamp(7.5rem,2.6rem+13vw,16.4rem)]"
+                  >
+                    <KineticText
+                      text="DUAENAM"
+                      hoverClassName="transition-colors duration-150 hover:text-[#5C9AFF]"
+                    />
+                  </motion.span>
+                </h1>
 
-          {/* Mobile/Tablet centered vector signature */}
-          <div className="mt-4 flex justify-center lg:hidden">
-            <SignatureDraw
-              trigger="mount"
-              stroke={overdrive ? "#5C9AFF" : "#0258FF"}
-              className="h-9 w-auto sm:h-11"
-            />
-          </div>
+                <p className="mt-6 font-editorial text-lg italic tracking-[0.03em] text-[#A1A19C] sm:mt-8 sm:text-2xl">
+                  {IDENTITY.tagline}
+                </p>
+              </motion.div>
+            )}
+
+            {variant === "spread" && (
+              <motion.div
+                key="spread"
+                initial={{ opacity: 0, y: 20, filter: "blur(6px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                exit={{ opacity: 0, y: -20, filter: "blur(6px)" }}
+                transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
+                className="grid w-full max-w-[1280px] grid-cols-1 items-end gap-6 px-2 md:grid-cols-[1fr_1.45fr] md:gap-12"
+              >
+                <div className="flex flex-col items-center text-center md:items-start md:text-left">
+                  <div className="relative flex items-baseline">
+                    <span className="font-editorial text-[clamp(6.5rem,18vw,16.5rem)] leading-[0.78] italic tracking-[-0.04em] text-[#0258FF]">
+                      /26.
+                    </span>
+                  </div>
+                  <div className="mt-3">
+                    <SignatureDraw
+                      trigger="mount"
+                      stroke="#F4F4EE"
+                      className="h-9 w-auto sm:h-11"
+                    />
+                  </div>
+                  <p className="mt-4 max-w-[340px] font-editorial text-xl leading-[1.25] italic text-[#F4F4EE]/85 sm:text-2xl">
+                    {IDENTITY.tagline}
+                  </p>
+                </div>
+
+                <div className="flex flex-col items-center text-center md:items-end md:text-right">
+                  <h1
+                    id="konten-utama"
+                    tabIndex={-1}
+                    className="flex flex-col items-center focus:outline-none md:items-end"
+                  >
+                    <motion.span
+                      style={prefersReduced ? undefined : { x: topLineX }}
+                      className="block font-condensed text-[clamp(4.6rem,13.5vw,13.8rem)] leading-[0.78] font-extrabold tracking-[-0.045em] uppercase text-[#F4F4EE]"
+                    >
+                      <KineticText
+                        text="FTS"
+                        hoverClassName="transition-colors duration-150 hover:text-[#5C9AFF]"
+                      />
+                    </motion.span>
+                    <motion.span
+                      style={prefersReduced ? undefined : { x: bottomLineX }}
+                      className="block font-condensed text-[clamp(4.4rem,13vw,13.2rem)] leading-[0.8] font-extrabold tracking-[-0.045em] uppercase text-[#F4F4EE]"
+                    >
+                      <KineticText
+                        text="DUAENAM"
+                        hoverClassName="transition-colors duration-150 hover:text-[#5C9AFF]"
+                      />
+                    </motion.span>
+                  </h1>
+                  <span className="mt-3 font-editorial text-2xl italic text-[#5C9AFF] sm:text-3xl">
+                    {IDENTITY.domain}
+                  </span>
+                </div>
+              </motion.div>
+            )}
+
+            {variant === "kinetic" && (
+              <motion.div
+                key="kinetic"
+                initial={{ opacity: 0, y: 20, filter: "blur(6px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                exit={{ opacity: 0, y: -20, filter: "blur(6px)" }}
+                transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
+                className="flex w-full flex-col items-center text-center"
+              >
+                <h1
+                  id="konten-utama"
+                  tabIndex={-1}
+                  className="flex flex-col items-center focus:outline-none"
+                >
+                  <motion.span
+                    style={prefersReduced ? undefined : { x: topLineX }}
+                    className="flex flex-wrap items-baseline justify-center gap-x-3 sm:gap-x-5"
+                  >
+                    <span className="font-condensed text-[clamp(4.5rem,13.5vw,15rem)] leading-[0.8] font-extrabold tracking-[-0.045em] uppercase text-[#F4F4EE]">
+                      <KineticText
+                        text="FTS"
+                        hoverClassName="transition-colors duration-150 hover:text-[#5C9AFF]"
+                      />
+                    </span>
+                    <span className="font-editorial text-[clamp(4.5rem,13.5vw,15rem)] leading-[0.8] italic tracking-[-0.03em] text-[#0258FF]">
+                      /26
+                    </span>
+                  </motion.span>
+
+                  <motion.span
+                    style={prefersReduced ? undefined : { x: bottomLineX }}
+                    className="mt-1 block font-condensed text-[clamp(3.6rem,10.5vw,11.8rem)] leading-[0.82] font-extrabold tracking-[-0.04em] uppercase text-[#F4F4EE]"
+                  >
+                    <KineticText
+                      text="DUAENAM"
+                      hoverClassName="transition-colors duration-150 hover:text-[#5C9AFF]"
+                    />
+                  </motion.span>
+                </h1>
+
+                <div className="mt-4">
+                  <SignatureDraw
+                    trigger="mount"
+                    stroke="#0258FF"
+                    className="h-10 w-auto sm:h-12"
+                  />
+                </div>
+
+                <p className="mt-2 font-editorial text-lg italic tracking-[0.03em] text-[#A1A19C] sm:text-2xl">
+                  {IDENTITY.tagline}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
-        {/* Bottom Architectural Ledger: Tagline on Left, Chamfered 02 / WORKSPACE Trigger on Right */}
+        {/* Frameless Editorial Scroll Cue */}
         <motion.div
           style={prefersReduced ? undefined : { opacity: heroOpacity }}
-          className="relative z-20 mx-auto flex w-full max-w-[1440px] flex-col items-center justify-between gap-4 border-t border-white/15 pt-4 sm:flex-row"
+          className="relative z-20 mt-8 flex flex-col items-center sm:mt-10"
         >
-          <p className="font-editorial text-base italic tracking-[0.03em] text-[#F4F4EE]/85 sm:text-xl">
-            {IDENTITY.tagline}
-          </p>
-
-          <Magnetic strength={0.24}>
+          <Magnetic strength={0.22}>
             <a
               href="#portal"
               onClick={() => studioSound.playClick()}
               data-cursor="SCROLL"
-              className="chamfer-sm group inline-flex min-h-[44px] items-center gap-3 border border-white/25 bg-[#17181A] px-5 py-2.5 font-condensed text-xs font-extrabold tracking-[0.2em] uppercase text-[#F4F4EE] transition-colors hover:border-[#0258FF] hover:bg-[#0258FF] hover:text-white"
+              className="group inline-flex min-h-[44px] flex-col items-center gap-2 px-4 py-1 text-[#A1A19C] no-underline transition-colors hover:text-[#F4F4EE]"
             >
-              <span className="font-mono text-[11px] text-[#5C9AFF] transition-colors group-hover:text-white">
-                02
+              <span className="flex items-baseline gap-2">
+                <span className="font-editorial text-sm italic text-[#0258FF]">
+                  02.
+                </span>
+                <span className="font-condensed text-xs font-extrabold tracking-[0.22em] uppercase">
+                  WORKSPACE
+                </span>
+                <ArrowDownIcon
+                  size={12}
+                  weight="bold"
+                  aria-hidden="true"
+                  className="transition-transform duration-200 group-hover:translate-y-1 group-hover:text-[#0258FF]"
+                />
               </span>
-              <span>WORKSPACE</span>
-              <ArrowDownIcon
-                size={14}
-                weight="bold"
+              <span
                 aria-hidden="true"
-                className="transition-transform duration-200 group-hover:translate-y-1"
+                className="block h-[1.5px] w-10 origin-left bg-white/25 transition-all duration-200 group-hover:w-full group-hover:bg-[#0258FF]"
               />
             </a>
           </Magnetic>
         </motion.div>
 
-        {/* Architectural transition frame with typographic preview, filling 100% before Scene 02 */}
+        {/* Distinct Electric Cobalt transition card rising out of Dark Hero into Warm Bone Scene 02 */}
         {!prefersReduced && (
           <motion.div
             aria-hidden="true"
-            animate={{
-              backgroundColor: portalFloodActive ? "#0258FF" : "#F4F4EE",
-            }}
-            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
             style={{
               scale: portalScale,
               borderRadius: portalRadius,
               opacity: portalOpacity,
             }}
-            className="pointer-events-none absolute inset-0 z-30 flex origin-center flex-col items-center justify-center overflow-hidden border border-[#111112]/10 shadow-2xl"
+            className="pointer-events-none absolute inset-0 z-30 flex origin-center flex-col items-center justify-center overflow-hidden bg-[#0258FF] text-white shadow-2xl"
           >
             <svg
               viewBox="0 0 640 640"
               fill="none"
-              className="pointer-events-none absolute h-[min(78vw,560px)] w-[min(78vw,560px)] text-[#111112]/[0.08]"
+              className="pointer-events-none absolute h-[min(78vw,560px)] w-[min(78vw,560px)] text-white/[0.16]"
             >
-              <path
-                d="M320 62C424 54 532 108 564 206C596 304 548 424 468 498C388 572 264 596 172 544C80 492 48 378 66 270C84 162 216 70 320 62Z"
+              <circle
+                cx="320"
+                cy="320"
+                r="240"
                 stroke="currentColor"
-                strokeWidth="1.5"
+                strokeWidth="1.2"
               />
             </svg>
 
@@ -401,119 +519,37 @@ export function MonolithScene({ portalFloodActive }: MonolithSceneProps) {
                 opacity: portalInnerOpacity,
                 scale: portalInnerScale,
               }}
-              className="relative z-10 flex w-full max-w-[780px] flex-col items-center px-8 text-center"
+              className="relative z-10 w-full max-w-[780px]"
             >
-              <div className="mb-5 flex items-center gap-3 font-mono text-xs tracking-[0.22em] uppercase text-[#4A4A45]">
-                <span>02</span>
-                <span className="h-[1px] w-8 bg-[#111112]/30" />
-                <span>NEXT // WORKSPACE</span>
-              </div>
+              <motion.div
+                style={{ opacity: portalExitOpacity }}
+                className="flex flex-col items-center px-8 text-center"
+              >
+                <div className="mb-4 flex items-center gap-3 font-condensed text-xs font-bold tracking-[0.26em] uppercase text-white/80">
+                  <span>02</span>
+                  <span className="h-[1px] w-8 bg-white/35" />
+                  <span>{IDENTITY.domain}</span>
+                </div>
 
-              <div className="flex flex-wrap items-baseline justify-center gap-x-2.5 sm:gap-x-4">
-                <span className="font-condensed text-[clamp(3rem,1.8rem+7.5vw,7.4rem)] leading-[0.86] font-extrabold tracking-[-0.04em] uppercase text-[#111112]">
-                  TASK
+                <span className="font-editorial text-[clamp(3.6rem,2rem+8vw,8.6rem)] leading-[0.88] italic tracking-[-0.03em] text-white">
+                  Workspace
                 </span>
-                <span className="font-editorial text-[clamp(3.2rem,1.9rem+8vw,7.8rem)] leading-[0.88] italic tracking-[-0.025em] text-[#004BE0]">
-                  PANEL
-                </span>
-              </div>
 
-              <div className="mt-6 h-[2px] w-48 overflow-hidden bg-[#111112]/15 sm:w-64">
-                <motion.div
-                  style={{ scaleX: portalBarScaleX }}
-                  className="h-full w-full origin-left bg-[#0258FF]"
-                />
-              </div>
+                <div className="mt-6 h-[2px] w-44 overflow-hidden bg-white/25 sm:w-56">
+                  <motion.div
+                    style={{ scaleX: portalBarScaleX }}
+                    className="h-full w-full origin-left bg-white"
+                  />
+                </div>
 
-              <p className="mt-4 font-editorial text-base italic tracking-[0.04em] text-[#4A4A45] sm:text-lg">
-                {IDENTITY.tagline}
-              </p>
+                <p className="mt-4 font-editorial text-base italic tracking-[0.04em] text-white/85 sm:text-lg">
+                  {IDENTITY.tagline}
+                </p>
+              </motion.div>
             </motion.div>
           </motion.div>
         )}
       </div>
     </section>
-  );
-}
-
-interface TelemetryAxisProps {
-  index: number;
-  center: number;
-  pointerX: MotionValue<number>;
-  pointerActive: MotionValue<number>;
-  overdrive: MotionValue<number>;
-  prefersReduced: boolean;
-}
-
-function TelemetryAxis({
-  index,
-  center,
-  pointerX,
-  pointerActive,
-  overdrive,
-  prefersReduced,
-}: TelemetryAxisProps) {
-  const synthRaw = useMotionValue(0);
-  const smoothSynth = useSpring(synthRaw, { stiffness: 420, damping: 20 });
-
-  useEffect(() => {
-    if (prefersReduced) return;
-    let decayTimer = 0;
-    const unsubscribe = subscribeSynthSlice((hitIndex) => {
-      if (hitIndex !== index) return;
-      synthRaw.set(1);
-      window.clearTimeout(decayTimer);
-      decayTimer = window.setTimeout(() => {
-        synthRaw.set(0);
-      }, 150);
-    });
-    return () => {
-      window.clearTimeout(decayTimer);
-      unsubscribe();
-    };
-  }, [index, prefersReduced, synthRaw]);
-
-  const energy = useTransform(
-    [pointerX, pointerActive, overdrive, smoothSynth],
-    ([px, active, od, synth]) => {
-      const dist = Math.abs((px as number) - center);
-      const wave = Math.max(0, 1 - dist / 0.32);
-      const hoverVal = wave * wave * (active as number);
-      return Math.max(hoverVal, od as number, synth as number);
-    }
-  );
-
-  const barScaleY = useTransform(energy, [0, 1], [0.14, 0.86]);
-  const barOpacity = useTransform(energy, [0, 1], [0.16, 0.95]);
-  const labelOpacity = useTransform(energy, [0, 1], [0.22, 0.9]);
-
-  return (
-    <div
-      className={`relative flex h-full flex-col justify-between border-l border-white/[0.06] py-28 pl-3 ${
-        index === 4 ? "border-r border-r-white/[0.06]" : ""
-      }`}
-    >
-      {/* Active vertical Cobalt telemetry filament along the structural axis */}
-      <motion.span
-        style={
-          prefersReduced
-            ? undefined
-            : {
-                scaleY: barScaleY,
-                opacity: barOpacity,
-              }
-        }
-        className="pointer-events-none absolute top-0 bottom-0 -left-[1px] w-[2px] origin-center bg-[#0258FF]"
-      />
-
-      <motion.span
-        style={prefersReduced ? undefined : { opacity: labelOpacity }}
-        className="font-mono text-[10px] tracking-[0.18em] text-[#5C9AFF]"
-      >
-        0{index + 1}
-      </motion.span>
-
-      <span className="h-[1px] w-3 bg-white/15" />
-    </div>
   );
 }

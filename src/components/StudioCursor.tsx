@@ -29,19 +29,18 @@ interface StudioCursorProps {
   portalFloodActive?: boolean;
 }
 
-const MAX_TRAIL_POINTS = 16;
+const MAX_TRAIL_POINTS = 15;
 
-// Classic asymmetric notched pointer silhouette matching the reference triangle
-const POINTER_PATH =
-  "M 2.2 1.8 L 2.2 27.6 L 9.8 20.2 L 21.4 20.2 Z";
+// Smoothly rounded triangular arrow matching the user's blue triangle reference image
+const ROUNDED_TRIANGLE_PATH =
+  "M 3 3.4 C 3 2.1 4.6 1.5 5.5 2.4 L 24.4 20.6 C 25.4 21.5 24.7 23.2 23.4 23.2 L 13.2 23.2 C 12.6 23.2 12 23.5 11.6 24 L 5.6 30.8 C 4.7 31.8 3 31.2 3 29.8 Z";
 
 /**
- * Bespoke Triangular OFF+BRAND Studio Pointer (desktop fine-pointer only):
- * 1. Primary sculpted triangular arrow with Electric Cobalt gradient (#0258FF -> #5C9AFF),
- *    internal facet split line, and dynamic velocity banking tilt.
- * 2. Spring-lagged wireframe ghost triangle that locks onto interactive targets.
- * 3. Triangular vector click shockwaves on pointerdown.
- * 4. Chamfered architectural context tag ([ OPEN ], [ ARCHIVE ], [ COPY ]) attached to the tail.
+ * Fluid Sculptural Triangular Cursor (inspired by user's blue triangle reference + OFF+BRAND):
+ * - Smoothly rounded triangular silhouette with deep-to-sky cobalt gradient (#0258FF -> #7CAEFF).
+ * - Soft spring-lagged translucent after-image triangle & fluid ink ribbon trail (no techy radar dashes).
+ * - Gentle velocity tilt & organic triangular click ripple.
+ * - Editorial context badge that unfolds smoothly when hovering interactive elements.
  */
 export function StudioCursor({ portalFloodActive = false }: StudioCursorProps) {
   const prefersReduced = Boolean(useReducedMotion());
@@ -59,19 +58,19 @@ export function StudioCursor({ portalFloodActive = false }: StudioCursorProps) {
   const echoIdRef = useRef(0);
   const stateModeRef = useRef<CursorState["mode"]>("default");
 
-  // Precision tip position
+  // Precision pointer tip
   const rawX = useMotionValue(-120);
   const rawY = useMotionValue(-120);
-  const tipX = useSpring(rawX, { stiffness: 1100, damping: 48, mass: 0.15 });
-  const tipY = useSpring(rawY, { stiffness: 1100, damping: 48, mass: 0.15 });
+  const tipX = useSpring(rawX, { stiffness: 1050, damping: 46, mass: 0.16 });
+  const tipY = useSpring(rawY, { stiffness: 1050, damping: 46, mass: 0.16 });
 
-  // Elastic trailing ghost wireframe triangle
-  const ghostX = useSpring(rawX, { stiffness: 220, damping: 24, mass: 0.6 });
-  const ghostY = useSpring(rawY, { stiffness: 220, damping: 24, mass: 0.6 });
+  // Soft liquid after-image triangle
+  const afterX = useSpring(rawX, { stiffness: 200, damping: 24, mass: 0.65 });
+  const afterY = useSpring(rawY, { stiffness: 200, damping: 24, mass: 0.65 });
 
-  // Velocity-driven aerodynamic banking tilt
-  const rawBank = useMotionValue(0);
-  const bankAngle = useSpring(rawBank, { stiffness: 260, damping: 20 });
+  // Smooth velocity-driven tilt
+  const rawTilt = useMotionValue(0);
+  const smoothTilt = useSpring(rawTilt, { stiffness: 240, damping: 22 });
 
   useEffect(() => {
     stateModeRef.current = state.mode;
@@ -99,7 +98,7 @@ export function StudioCursor({ portalFloodActive = false }: StudioCursorProps) {
   useEffect(() => {
     if (!enabled) return;
 
-    let bankDecayTimer = 0;
+    let tiltDecayTimer = 0;
 
     const onPointerMove = (event: PointerEvent) => {
       const { clientX: x, clientY: y } = event;
@@ -114,22 +113,21 @@ export function StudioCursor({ portalFloodActive = false }: StudioCursorProps) {
         const dt = Math.max(8, now - prev.time);
         const vx = (x - prev.x) / dt;
         const vy = (y - prev.y) / dt;
-        // Subtle aerodynamic bank into horizontal/vertical velocity
-        const tilt = Math.max(-18, Math.min(18, vx * 7.5 - vy * 2.5));
-        rawBank.set(tilt);
+        const tilt = Math.max(-15, Math.min(15, vx * 6.5 - vy * 2));
+        rawTilt.set(tilt);
       }
       lastPosRef.current = { x, y, time: now };
 
-      // Feed tapered cobalt wake ribbon from the notch tail (+7, +17)
-      trailRef.current.push({ x: x + 7, y: y + 17, life: 1 });
+      // Smooth ribbon from the center-notch of the triangle (+9, +19)
+      trailRef.current.push({ x: x + 9, y: y + 19, life: 1 });
       if (trailRef.current.length > MAX_TRAIL_POINTS) {
         trailRef.current.shift();
       }
 
-      window.clearTimeout(bankDecayTimer);
-      bankDecayTimer = window.setTimeout(() => {
-        rawBank.set(0);
-      }, 70);
+      window.clearTimeout(tiltDecayTimer);
+      tiltDecayTimer = window.setTimeout(() => {
+        rawTilt.set(0);
+      }, 75);
 
       const el = event.target as HTMLElement | null;
       if (el?.closest("[data-cursor-hide='true']")) {
@@ -173,7 +171,7 @@ export function StudioCursor({ portalFloodActive = false }: StudioCursorProps) {
       ]);
       window.setTimeout(() => {
         setEchoes((prev) => prev.filter((item) => item.id !== id));
-      }, 480);
+      }, 500);
     };
 
     const onPointerUp = () => setPressed(false);
@@ -182,7 +180,7 @@ export function StudioCursor({ portalFloodActive = false }: StudioCursorProps) {
       setVisible(false);
       setPressed(false);
       setState({ mode: "default" });
-      rawBank.set(0);
+      rawTilt.set(0);
       lastPosRef.current = null;
     };
 
@@ -192,15 +190,15 @@ export function StudioCursor({ portalFloodActive = false }: StudioCursorProps) {
     document.addEventListener("mouseleave", onPointerLeave, { passive: true });
 
     return () => {
-      window.clearTimeout(bankDecayTimer);
+      window.clearTimeout(tiltDecayTimer);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("pointerup", onPointerUp);
       document.removeEventListener("mouseleave", onPointerLeave);
     };
-  }, [enabled, rawBank, rawX, rawY]);
+  }, [enabled, rawTilt, rawX, rawY]);
 
-  // Tapered speed ribbon trailing behind the triangular pointer tail
+  // Smooth ink ribbon trail
   useEffect(() => {
     if (!enabled || !canvasRef.current) return;
     const canvas = canvasRef.current;
@@ -238,13 +236,13 @@ export function StudioCursor({ portalFloodActive = false }: StudioCursorProps) {
           const p0 = pts[i - 1];
           const p1 = pts[i];
           const ratio = i / pts.length;
-          const alpha = Math.max(0, Math.min(0.55, ratio * p1.life * 0.58));
+          const alpha = Math.max(0, Math.min(0.42, ratio * p1.life * 0.45));
 
           ctx.beginPath();
           ctx.moveTo(p0.x, p0.y);
           ctx.lineTo(p1.x, p1.y);
-          ctx.strokeStyle = `rgba(2, 88, 255, ${alpha.toFixed(3)})`;
-          ctx.lineWidth = Math.max(0.5, ratio * 2.6);
+          ctx.strokeStyle = `rgba(47, 118, 255, ${alpha.toFixed(3)})`;
+          ctx.lineWidth = Math.max(0.6, ratio * 3.2);
           ctx.stroke();
         }
       }
@@ -268,14 +266,13 @@ export function StudioCursor({ portalFloodActive = false }: StudioCursorProps) {
 
   return (
     <>
-      {/* Tapered Cobalt wake ribbon */}
       <canvas
         ref={canvasRef}
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 z-[58] hidden h-full w-full md:block"
       />
 
-      {/* Triangular vector click echoes */}
+      {/* Soft triangular click bloom */}
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 z-[59] hidden overflow-hidden md:block"
@@ -284,22 +281,22 @@ export function StudioCursor({ portalFloodActive = false }: StudioCursorProps) {
           {echoes.map((echo) => (
             <motion.svg
               key={echo.id}
-              viewBox="0 0 28 32"
-              initial={{ opacity: 0.85, scale: 0.75 }}
-              animate={{ opacity: 0, scale: 2.3 }}
+              viewBox="0 0 28 34"
+              initial={{ opacity: 0.65, scale: 0.85 }}
+              animate={{ opacity: 0, scale: 2.15 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.44, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1] }}
               style={{
-                left: echo.x - 4,
-                top: echo.y - 4,
+                left: echo.x - 3,
+                top: echo.y - 3,
               }}
               className="absolute h-8 w-7 overflow-visible"
             >
               <path
-                d={POINTER_PATH}
+                d={ROUNDED_TRIANGLE_PATH}
                 fill="none"
-                stroke={portalFloodActive ? "#FFFFFF" : "#0258FF"}
-                strokeWidth="1.5"
+                stroke={portalFloodActive ? "#FFFFFF" : "#3B82FF"}
+                strokeWidth="1.6"
                 strokeLinejoin="round"
               />
             </motion.svg>
@@ -307,37 +304,33 @@ export function StudioCursor({ portalFloodActive = false }: StudioCursorProps) {
         </AnimatePresence>
       </div>
 
-      {/* Spring-lagged wireframe ghost triangle */}
+      {/* Soft spring-lagged translucent after-image triangle (fluid, non-techy) */}
       <motion.div
         aria-hidden="true"
-        style={{ x: ghostX, y: ghostY }}
+        style={{ x: afterX, y: afterY }}
         animate={{
-          opacity: visible ? (isHidden ? 0.25 : 0.72) : 0,
+          opacity: visible ? (isHidden ? 0.15 : 0.34) : 0,
         }}
         transition={{ duration: 0.16 }}
         className="pointer-events-none fixed top-0 left-0 z-[60] hidden md:block"
       >
         <motion.svg
-          viewBox="0 0 28 32"
+          viewBox="0 0 28 34"
           animate={{
-            scale: pressed ? 0.78 : isInteractive ? 1.32 : 1.08,
-            rotate: isInteractive ? -6 : 0,
+            scale: pressed ? 0.84 : isInteractive ? 1.24 : 1.06,
+            rotate: isInteractive ? -5 : 0,
           }}
-          transition={{ type: "spring", stiffness: 320, damping: 24 }}
-          className="-translate-x-[2px] -translate-y-[2px] h-8 w-7 overflow-visible"
+          transition={{ type: "spring", stiffness: 280, damping: 24 }}
+          className="-translate-x-[3px] -translate-y-[3px] h-8 w-7 overflow-visible"
         >
           <path
-            d={POINTER_PATH}
-            fill="none"
-            stroke={portalFloodActive ? "#FFFFFF" : "#5C9AFF"}
-            strokeWidth={isInteractive ? "1.4" : "1"}
-            strokeDasharray={isInteractive ? "none" : "3 3"}
-            strokeLinejoin="round"
+            d={ROUNDED_TRIANGLE_PATH}
+            fill={portalFloodActive ? "rgba(255,255,255,0.45)" : "rgba(47,118,255,0.45)"}
           />
         </motion.svg>
       </motion.div>
 
-      {/* Primary sculpted triangular arrow pointer + chamfered studio action tag */}
+      {/* Primary smoothly-rounded Cobalt gradient triangle pointer */}
       <motion.div
         aria-hidden="true"
         style={{ x: tipX, y: tipY }}
@@ -349,87 +342,70 @@ export function StudioCursor({ portalFloodActive = false }: StudioCursorProps) {
       >
         <motion.div
           style={{
-            rotate: bankAngle,
-            transformOrigin: "2px 2px",
+            rotate: smoothTilt,
+            transformOrigin: "3px 3px",
           }}
           animate={{
-            scale: pressed ? 0.82 : isInteractive ? 1.08 : 1,
+            scale: pressed ? 0.84 : isInteractive ? 1.1 : 1,
           }}
-          transition={{ type: "spring", stiffness: 520, damping: 28 }}
+          transition={{ type: "spring", stiffness: 500, damping: 28 }}
           className="relative"
         >
           <svg
-            viewBox="0 0 28 32"
-            className="-translate-x-[2px] -translate-y-[2px] h-8 w-7 overflow-visible drop-shadow-[0_4px_10px_rgba(2,88,255,0.38)]"
+            viewBox="0 0 28 34"
+            className="-translate-x-[3px] -translate-y-[3px] h-8 w-7 overflow-visible drop-shadow-[0_6px_14px_rgba(2,88,255,0.32)]"
           >
             <defs>
               <linearGradient
-                id="fts-cursor-cobalt"
-                x1="2"
+                id="fts-triangle-gradient"
+                x1="3"
                 y1="2"
-                x2="18"
-                y2="28"
+                x2="16"
+                y2="31"
                 gradientUnits="userSpaceOnUse"
               >
-                <stop offset="0%" stopColor="#0258FF" />
-                <stop offset="58%" stopColor="#2F76FF" />
-                <stop offset="100%" stopColor="#75A8FF" />
+                <stop offset="0%" stopColor="#0047FF" />
+                <stop offset="52%" stopColor="#3B7BFF" />
+                <stop offset="100%" stopColor="#8AB4FF" />
               </linearGradient>
               <linearGradient
-                id="fts-cursor-obsidian"
-                x1="2"
+                id="fts-triangle-obsidian"
+                x1="3"
                 y1="2"
-                x2="18"
-                y2="28"
+                x2="16"
+                y2="31"
                 gradientUnits="userSpaceOnUse"
               >
                 <stop offset="0%" stopColor="#111112" />
-                <stop offset="100%" stopColor="#27282B" />
+                <stop offset="100%" stopColor="#2A2B2E" />
               </linearGradient>
             </defs>
 
-            {/* Main triangular body matching user's reference image */}
             <path
-              d={POINTER_PATH}
+              d={ROUNDED_TRIANGLE_PATH}
               fill={
                 portalFloodActive
-                  ? "url(#fts-cursor-obsidian)"
-                  : "url(#fts-cursor-cobalt)"
+                  ? "url(#fts-triangle-obsidian)"
+                  : "url(#fts-triangle-gradient)"
               }
-              stroke="#F4F4EE"
-              strokeWidth="1.35"
+              stroke={portalFloodActive ? "#FFFFFF" : "rgba(244,244,238,0.85)"}
+              strokeWidth="1.1"
               strokeLinejoin="round"
             />
-
-            {/* Internal architectural facet ridge line from tip to notch */}
-            <path
-              d="M 2.5 2.4 L 9.8 20.2"
-              stroke="rgba(244,244,238,0.45)"
-              strokeWidth="0.9"
-              strokeLinecap="round"
-            />
-
-            {/* Precision hot-spot apex dot */}
-            <circle cx="2.2" cy="2.2" r="1.3" fill="#F4F4EE" />
           </svg>
 
-          {/* Attached chamfered studio context tag (replaces generic round pill) */}
+          {/* Editorial context tag (warm bone / ink contrast, zero sci-fi chamfers) */}
           <AnimatePresence>
             {isTag && !isHidden && (
               <motion.div
                 key={state.label}
-                initial={{ opacity: 0, x: -6, scale: 0.9 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: -4, scale: 0.9 }}
-                transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
-                className={`chamfer-sm absolute top-5 left-6 flex items-center gap-1.5 border px-2.5 py-1 shadow-xl ${
-                  portalFloodActive
-                    ? "border-white bg-[#111112] text-[#F4F4EE]"
-                    : "border-[#5C9AFF]/60 bg-[#111112] text-[#F4F4EE]"
-                }`}
+                initial={{ opacity: 0, x: -6, y: 2, scale: 0.92 }}
+                animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+                exit={{ opacity: 0, x: -4, scale: 0.92 }}
+                transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                className="chamfer-sm absolute top-5 left-6 flex items-center bg-[#F4F4EE] px-2.5 py-1 text-[#111112] shadow-lg"
               >
-                <span className="h-1.5 w-1.5 bg-[#0258FF]" />
-                <span className="font-condensed text-[10px] leading-none font-extrabold tracking-[0.18em] uppercase whitespace-nowrap">
+                <span className="font-condensed text-[10px] leading-none font-extrabold tracking-[0.16em] uppercase whitespace-nowrap">
                   {state.label}
                 </span>
               </motion.div>

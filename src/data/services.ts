@@ -42,7 +42,7 @@ export const SCENES: readonly SceneMeta[] = [
   {
     id: "monolith",
     index: "01",
-    navTitle: "INDEX",
+    navTitle: "FTS",
     label: "FTSDUAENAM",
     href: "#monolith",
     theme: "dark",

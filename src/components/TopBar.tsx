@@ -10,6 +10,7 @@ import {
 } from "@/data/services";
 import { FtsLogo } from "@/components/FtsLogo";
 import { Magnetic } from "@/components/Magnetic";
+import { SlotRollText } from "@/components/SlotRollText";
 import { studioSound, useSoundEnabled } from "@/lib/studioSound";
 
 interface TopBarProps {
@@ -97,7 +98,6 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
   const inactiveStep = isLightSurface
     ? "text-[#4A4A45] hover:text-[#111112]"
     : "text-[#A1A19C] hover:text-white";
-  const dividerTone = isLightSurface ? "text-[#111112]/20" : "text-white/20";
 
   const ctaPlate = isLightSurface
     ? "bg-[#111112] text-[#F4F4EE] hover:bg-[#0258FF] hover:text-white"
@@ -151,42 +151,34 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
             <FtsLogo className="h-7 w-auto sm:h-8" />
           </a>
 
-          {/* Center (Desktop): Architectural slash-divided 01 / 02 / 03 telemetry rail */}
+          {/* Center (Desktop): Editorial 01 / 02 / 03 index with italic serif numerals */}
           <nav
             aria-label="Navigasi utama"
             className="pointer-events-auto hidden items-center justify-self-center md:flex"
           >
-            <ul className="flex items-center border-b border-current/15">
-              {SCENES.map((scene, idx) => {
+            <ul className="flex items-center gap-6">
+              {SCENES.map((scene) => {
                 const isActive = scene.id === activeScene;
                 return (
-                  <li key={scene.id} className="relative flex items-center">
-                    {idx > 0 && (
-                      <span
-                        aria-hidden="true"
-                        className={`select-none px-1 font-condensed text-xs font-bold ${dividerTone}`}
-                      >
-                        /
-                      </span>
-                    )}
+                  <li key={scene.id} className="relative">
                     <a
                       href={scene.href}
                       onClick={() => studioSound.playClick()}
                       aria-current={isActive ? "location" : undefined}
-                      className={`relative inline-flex min-h-[44px] items-baseline gap-1.5 px-3.5 py-2 transition-colors duration-200 ${
+                      className={`group relative inline-flex min-h-[44px] items-baseline gap-1.5 px-1.5 py-2 transition-colors duration-200 ${
                         isActive ? primaryInk : inactiveStep
                       }`}
                     >
                       <span
-                        className={`font-mono text-[11px] tracking-[0.12em] transition-colors ${
+                        className={`font-editorial text-base italic tracking-[-0.02em] transition-colors ${
                           isActive
                             ? portalFloodActive && !menuOpen
-                              ? "text-white font-semibold"
-                              : "text-[#0258FF] font-semibold"
-                            : "opacity-60"
+                              ? "text-white"
+                              : "text-[#0258FF]"
+                            : "opacity-70 group-hover:opacity-100"
                         }`}
                       >
-                        {scene.index}
+                        {scene.index}.
                       </span>
                       <span className="font-condensed text-xs font-extrabold tracking-[0.18em] uppercase">
                         {scene.navTitle}
@@ -200,7 +192,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                             stiffness: 380,
                             damping: 30,
                           }}
-                          className={`absolute right-2 -bottom-[1px] left-2 h-[2px] ${
+                          className={`absolute right-0 bottom-1 left-0 h-[1.5px] ${
                             portalFloodActive && !menuOpen
                               ? "bg-white"
                               : "bg-[#0258FF]"
@@ -385,8 +377,13 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                           <span className="font-mono text-xs tracking-[0.16em] text-[#A1A19C] transition-colors group-hover:text-[#0258FF] sm:text-sm">
                             {scene.index}
                           </span>
-                          <span className="font-condensed text-[clamp(2.5rem,1.4rem+5vw,5.4rem)] leading-[0.9] font-extrabold tracking-[-0.03em] uppercase text-[#F4F4EE] transition-transform duration-200 group-hover:translate-x-3 group-hover:text-[#0258FF]">
-                            {scene.label}
+                          <span className="font-condensed text-[clamp(2.5rem,1.4rem+5vw,5.4rem)] leading-[0.95] font-extrabold tracking-[-0.03em] uppercase text-[#F4F4EE]">
+                            <SlotRollText
+                              text={scene.label}
+                              active={isRowHovered}
+                              hoverColorClass="text-[#0258FF]"
+                              stagger={0.038}
+                            />
                           </span>
                         </span>
                         <ArrowUpRightIcon
@@ -426,7 +423,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => studioSound.playClick()}
-                  className="inline-flex min-h-[44px] items-center gap-1 font-condensed font-bold tracking-[0.16em] uppercase text-[#5C9AFF] hover:text-white"
+                  className="inline-flex min-h-[44px] items-center gap-1 font-condensed font-bold tracking-[0.16em] uppercase text-[#5C9AFF] transition-colors hover:text-white"
                 >
                   <span>TASKPANEL</span>
                   <ArrowUpRightIcon size={14} weight="bold" aria-hidden="true" />
@@ -436,7 +433,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => studioSound.playClick()}
-                  className="inline-flex min-h-[44px] items-center gap-1 font-condensed font-bold tracking-[0.16em] uppercase text-[#A1A19C] hover:text-white"
+                  className="inline-flex min-h-[44px] items-center gap-1 font-condensed font-bold tracking-[0.16em] uppercase text-[#A1A19C] transition-colors hover:text-white"
                 >
                   <span>CONSTELLA</span>
                   <ArrowUpRightIcon size={14} weight="bold" aria-hidden="true" />
@@ -446,7 +443,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => studioSound.playClick()}
-                  className="inline-flex min-h-[44px] items-center font-condensed font-bold tracking-[0.16em] uppercase text-[#F4F4EE] hover:text-[#5C9AFF]"
+                  className="inline-flex min-h-[44px] items-center font-condensed font-bold tracking-[0.16em] uppercase text-[#F4F4EE] transition-colors hover:text-[#5C9AFF]"
                 >
                   LOGIN
                 </a>
@@ -455,7 +452,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => studioSound.playClick()}
-                  className="inline-flex min-h-[44px] items-center font-condensed font-bold tracking-[0.16em] uppercase text-[#A1A19C] hover:text-white"
+                  className="inline-flex min-h-[44px] items-center font-condensed font-bold tracking-[0.16em] uppercase text-[#A1A19C] transition-colors hover:text-white"
                 >
                   PRIVACY
                 </a>
@@ -464,7 +461,7 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => studioSound.playClick()}
-                  className="inline-flex min-h-[44px] items-center font-condensed font-bold tracking-[0.16em] uppercase text-[#A1A19C] hover:text-white"
+                  className="inline-flex min-h-[44px] items-center font-condensed font-bold tracking-[0.16em] uppercase text-[#A1A19C] transition-colors hover:text-white"
                 >
                   TERMS
                 </a>

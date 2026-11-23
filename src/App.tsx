@@ -13,10 +13,17 @@ import { SignalScene } from "@/components/SignalScene";
 
 export function App() {
   const [portalFloodActive, setPortalFloodActive] = useState(false);
+  const [monolithCobaltBridge, setMonolithCobaltBridge] = useState(false);
 
   const handleFloodChange = useCallback((active: boolean) => {
     setPortalFloodActive(active);
   }, []);
+
+  const handleCobaltBridgeChange = useCallback((active: boolean) => {
+    setMonolithCobaltBridge(active);
+  }, []);
+
+  const cobaltSurfaceActive = portalFloodActive || monolithCobaltBridge;
 
   return (
     <MotionConfig reducedMotion="user">
@@ -32,7 +39,7 @@ export function App() {
         <StudioPreloader />
 
         {/* Bespoke OFF+BRAND triangular studio pointer */}
-        <StudioCursor portalFloodActive={portalFloodActive} />
+        <StudioCursor portalFloodActive={cobaltSurfaceActive} />
 
         {/* Subtle tactile studio grain */}
         <div
@@ -41,18 +48,18 @@ export function App() {
         />
 
         {/* Freehand hold-and-drag Cobalt light brush */}
-        <StudioDrawCanvas portalFloodActive={portalFloodActive} />
+        <StudioDrawCanvas portalFloodActive={cobaltSurfaceActive} />
 
-        {/* Synthesia keyboard waterfall, bubbles & live WPM */}
-        <SynthesiaWaterfall portalFloodActive={portalFloodActive} />
+        {/* Synthesia ambient smoke & live WPM */}
+        <SynthesiaWaterfall portalFloodActive={cobaltSurfaceActive} />
 
         {/* Minimalist right-click quick action pill */}
         <StudioContextMenu />
 
-        <TopBar portalFloodActive={portalFloodActive} />
+        <TopBar portalFloodActive={cobaltSurfaceActive} />
 
         <main>
-          <MonolithScene portalFloodActive={portalFloodActive} />
+          <MonolithScene onCobaltCoverChange={handleCobaltBridgeChange} />
           <PortalScene onFloodChange={handleFloodChange} />
         </main>
 
