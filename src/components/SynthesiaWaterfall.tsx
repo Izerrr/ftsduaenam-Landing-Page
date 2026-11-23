@@ -10,22 +10,16 @@ import {
   toggleStudioInvert,
 } from "@/lib/studioEvents";
 
-interface KineticBubble {
+interface SpeedStreak {
   id: number;
   code: string;
   label: string;
   x: number;
-  y: number;
-  radius: number;
-  targetRadius: number;
-  vy: number;
-  wobblePhase: number;
-  wobbleSpeed: number;
-  wobbleAmp: number;
-  life: number;
-  maxLife: number;
+  headY: number;
+  tailY: number;
+  speed: number;
+  thickness: number;
   held: boolean;
-  isAccent: boolean;
   onFlood: boolean;
 }
 
@@ -69,10 +63,10 @@ function getColumnNorm(key: string): { normX: number; label: string } {
 }
 
 /**
- * Kinetic Bubble & Typography Drift + Live WPM Meter (Non-MIDI):
- * - Typing launches crisp OFF+BRAND glass orbs & floating character echoes upward from the bottom.
- * - Holding any key inflates/charges its orb before releasing it into upward zero-gravity drift.
- * - Features scroll-inertia momentum, 5-slice Hero equalizer pulses, secret keywords, and tab WPM.
+ * Kinetic Telemetry Speed-Lines & Floating Serif Glyphs + Live WPM Meter:
+ * - Zero bubbles, zero MIDI blocks, zero hazy smoke.
+ * - Keystrokes launch razor-sharp 2px vertical Electric Cobalt velocity lines & italic serif
+ *   character echoes upward from the bottom; holding extends the line before releasing it.
  */
 export function SynthesiaWaterfall({
   portalFloodActive,
@@ -87,8 +81,8 @@ export function SynthesiaWaterfall({
   const [pulseTick, setPulseTick] = useState(0);
   const [waveIds, setWaveIds] = useState<number[]>([]);
 
-  const bubblesRef = useRef<KineticBubble[]>([]);
-  const heldByCodeRef = useRef<Map<string, KineticBubble>>(new Map());
+  const streaksRef = useRef<SpeedStreak[]>([]);
+  const heldByCodeRef = useRef<Map<string, SpeedStreak>>(new Map());
   const timestampsRef = useRef<number[]>([]);
   const sessionStartRef = useRef<number>(0);
   const commandBufRef = useRef("");
@@ -140,7 +134,7 @@ export function SynthesiaWaterfall({
     let rafId = 0;
     let lastTime = performance.now();
     let hideTimer = 0;
-    let bubbleSeq = 0;
+    let streakSeq = 0;
     let lastScrollY = window.scrollY;
     let pendingScrollShift = 0;
 
@@ -173,7 +167,7 @@ export function SynthesiaWaterfall({
       const currentY = window.scrollY;
       const delta = currentY - lastScrollY;
       lastScrollY = currentY;
-      if (bubblesRef.current.length > 0) {
+      if (streaksRef.current.length > 0) {
         pendingScrollShift = Math.max(
           -180,
           Math.min(180, pendingScrollShift + delta * 0.5)
@@ -197,81 +191,69 @@ export function SynthesiaWaterfall({
         pendingScrollShift *= 0.76;
         if (Math.abs(pendingScrollShift) < 0.05) pendingScrollShift = 0;
 
-        const bubbles = bubblesRef.current;
-        for (let i = bubbles.length - 1; i >= 0; i -= 1) {
-          const b = bubbles[i];
+        const streaks = streaksRef.current;
+        for (let i = streaks.length - 1; i >= 0; i -= 1) {
+          const s = streaks[i];
+          const step = s.speed * dt + scrollShiftY * 0.65;
 
-          if (b.held) {
-            // Inflate crisply while key is held down near bottom launch line
-            b.radius = Math.min(38, b.radius + 36 * dt);
-            b.y = Math.max(vh - 76, b.y - 24 * dt);
-          } else {
-            b.radius += (b.targetRadius - b.radius) * Math.min(1, dt * 8);
-            b.y -= b.vy * dt + scrollShiftY * 0.65;
-            b.wobblePhase += dt * b.wobbleSpeed;
-            b.x += Math.sin(b.wobblePhase) * b.wobbleAmp * dt;
-            b.life -= dt;
+          s.headY -= step;
+          if (!s.held) {
+            s.tailY -= step * 0.94;
           }
 
-          if (b.life <= 0 || b.y < -b.radius - 20) {
-            bubbles.splice(i, 1);
+          if (s.tailY < -20 || s.headY > vh + 120) {
+            streaks.splice(i, 1);
             continue;
           }
 
-          const progress = Math.max(0, b.life / b.maxLife);
-          const horizonFade = Math.max(0, Math.min(1, b.y / (vh * 0.28)));
-          const alpha = Math.min(1, progress * 1.45) * horizonFade;
+          const alpha = Math.max(0, Math.min(1, s.headY / (vh * 0.28)));
           if (alpha <= 0.01) continue;
 
-          // Crisp glass orb rim + subtle translucent fill (NO hazy smoke blur)
-          ctx.beginPath();
-          ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-          ctx.fillStyle = b.onFlood
-            ? `rgba(255, 255, 255, ${(alpha * 0.18).toFixed(3)})`
-            : b.isAccent
-              ? `rgba(2, 88, 255, ${(alpha * 0.16).toFixed(3)})`
-              : `rgba(92, 154, 255, ${(alpha * 0.12).toFixed(3)})`;
-          ctx.fill();
-
-          ctx.lineWidth = b.held ? 2 : 1.35;
-          ctx.strokeStyle = b.onFlood
-            ? `rgba(255, 255, 255, ${(alpha * 0.92).toFixed(3)})`
-            : b.isAccent
-              ? `rgba(2, 88, 255, ${(alpha * 0.94).toFixed(3)})`
-              : `rgba(92, 154, 255, ${(alpha * 0.78).toFixed(3)})`;
-          ctx.stroke();
-
-          // Sharp tiny glass crescent specular arc (top-left of orb)
-          if (b.radius >= 8) {
-            ctx.beginPath();
-            ctx.arc(
-              b.x,
-              b.y,
-              Math.max(2, b.radius - 3.5),
-              -Math.PI * 0.82,
-              -Math.PI * 0.38
+          // Razor-sharp aerodynamic telemetry line from tailY -> headY
+          const grad = ctx.createLinearGradient(0, s.headY, 0, s.tailY);
+          if (s.onFlood) {
+            grad.addColorStop(0, `rgba(255, 255, 255, ${alpha.toFixed(3)})`);
+            grad.addColorStop(
+              0.5,
+              `rgba(244, 244, 238, ${(alpha * 0.55).toFixed(3)})`
             );
-            ctx.lineWidth = 1.1;
-            ctx.strokeStyle = b.onFlood
-              ? `rgba(255, 255, 255, ${(alpha * 0.8).toFixed(3)})`
-              : `rgba(244, 244, 238, ${(alpha * 0.65).toFixed(3)})`;
-            ctx.stroke();
+            grad.addColorStop(1, "rgba(255, 255, 255, 0)");
+          } else {
+            grad.addColorStop(0, `rgba(92, 154, 255, ${alpha.toFixed(3)})`);
+            grad.addColorStop(
+              0.32,
+              `rgba(2, 88, 255, ${(alpha * 0.92).toFixed(3)})`
+            );
+            grad.addColorStop(1, "rgba(2, 88, 255, 0)");
           }
 
-          // Floating editorial character glyph centered cleanly inside primary orb
-          if (b.label && b.radius >= 12) {
-            ctx.fillStyle = b.onFlood
+          ctx.lineCap = "round";
+          ctx.lineWidth = s.thickness;
+          ctx.strokeStyle = grad;
+          ctx.beginPath();
+          ctx.moveTo(s.x, s.headY);
+          ctx.lineTo(s.x, s.tailY);
+          ctx.stroke();
+
+          // Crisp leading pinpoint diamond / square nose mark
+          ctx.fillStyle = s.onFlood
+            ? `rgba(255, 255, 255, ${alpha.toFixed(3)})`
+            : `rgba(244, 244, 238, ${alpha.toFixed(3)})`;
+          ctx.fillRect(s.x - 1.5, s.headY - 1.5, 3, 3);
+
+          // Kinetic italic serif glyph gliding cleanly beside the leading tip
+          if (s.label) {
+            ctx.fillStyle = s.onFlood
               ? `rgba(255, 255, 255, ${alpha.toFixed(3)})`
-              : `rgba(2, 88, 255, ${alpha.toFixed(3)})`;
-            const fontSize = Math.round(Math.max(11, Math.min(24, b.radius * 0.85)));
-            ctx.font = `italic 400 ${fontSize}px "Instrument Serif", Georgia, serif`;
-            ctx.textAlign = "center";
+              : `rgba(2, 88, 255, ${(alpha * 0.95).toFixed(3)})`;
+            ctx.font = 'italic 400 20px "Instrument Serif", Georgia, serif';
+            ctx.textAlign = "left";
             ctx.textBaseline = "middle";
-            ctx.fillText(b.label, b.x, b.y + 0.5);
+            ctx.fillText(s.label, s.x + 8, s.headY + 2);
           }
         }
 
-        if (bubbles.length > 0) {
+        if (streaks.length > 0) {
           rafId = window.requestAnimationFrame(render);
         } else {
           rafId = 0;
@@ -371,58 +353,26 @@ export function SynthesiaWaterfall({
 
       const { normX, label } = getColumnNorm(event.key);
       const x = normX * window.innerWidth;
-      const y = window.innerHeight - 28;
+      const vh = window.innerHeight;
       const onFlood = portalFloodRef.current;
 
       // Feed 5-channel Hero Slice Visualizer
       dispatchSynthSlice(Math.min(4, Math.max(0, Math.floor(normX * 5))));
 
-      // Main primary glyph bubble (inflates while key is held)
-      const primaryRadius = event.key === " " ? 24 : 18 + Math.random() * 5;
-      const mainBubble: KineticBubble = {
-        id: ++bubbleSeq,
+      const streak: SpeedStreak = {
+        id: ++streakSeq,
         code: event.code,
         label,
         x,
-        y,
-        radius: 10,
-        targetRadius: primaryRadius,
-        vy: 155 + Math.random() * 75,
-        wobblePhase: Math.random() * Math.PI * 2,
-        wobbleSpeed: 2.2 + Math.random() * 1.6,
-        wobbleAmp: 22 + Math.random() * 24,
-        life: 3.1,
-        maxLife: 3.1,
+        headY: vh - 68,
+        tailY: vh,
+        speed: event.key === " " ? 560 : 480 + Math.random() * 140,
+        thickness: event.key === " " || isEnter ? 2.5 : 1.75,
         held: true,
-        isAccent: true,
         onFlood,
       };
-      bubblesRef.current.push(mainBubble);
-      heldByCodeRef.current.set(event.code, mainBubble);
-
-      // 2-3 companion crisp satellite micro-bubbles
-      const satelliteCount = event.key === " " ? 4 : 2;
-      for (let i = 0; i < satelliteCount; i += 1) {
-        const satRadius = 3.5 + Math.random() * 5.5;
-        bubblesRef.current.push({
-          id: ++bubbleSeq,
-          code: "",
-          label: "",
-          x: x + (Math.random() - 0.5) * 44,
-          y: y + (Math.random() - 0.5) * 14,
-          radius: satRadius,
-          targetRadius: satRadius,
-          vy: 195 + Math.random() * 120,
-          wobblePhase: Math.random() * Math.PI * 2,
-          wobbleSpeed: 3 + Math.random() * 2.2,
-          wobbleAmp: 28 + Math.random() * 28,
-          life: 1.8 + Math.random() * 0.9,
-          maxLife: 2.7,
-          held: false,
-          isAccent: false,
-          onFlood,
-        });
-      }
+      streaksRef.current.push(streak);
+      heldByCodeRef.current.set(event.code, streak);
 
       studioSound.playTypeThock(normX, event.key === " " || isEnter);
       if (isPrintable) {
@@ -431,22 +381,21 @@ export function SynthesiaWaterfall({
       ensureLoop();
     };
 
-    const releaseBubble = (code: string) => {
+    const releaseStreak = (code: string) => {
       const held = heldByCodeRef.current.get(code);
       if (held) {
         held.held = false;
-        held.targetRadius = Math.max(held.targetRadius, held.radius);
         heldByCodeRef.current.delete(code);
       }
     };
 
     const onKeyUp = (event: KeyboardEvent) => {
-      releaseBubble(event.code);
+      releaseStreak(event.code);
     };
 
     const releaseAll = () => {
-      heldByCodeRef.current.forEach((b) => {
-        b.held = false;
+      heldByCodeRef.current.forEach((s) => {
+        s.held = false;
       });
       heldByCodeRef.current.clear();
     };
