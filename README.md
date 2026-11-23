@@ -1,6 +1,6 @@
 # FTS26 / `ftsduaenam.web.id`
 
-**VIKOLVERE · VERIVELA · FATISDA UNS 2026**
+**INDEPENDENT // 26**
 
 | Index | Destination |
 | :--- | :--- |
