@@ -1,26 +1,29 @@
-```text
-+--------------------------------------------------+
-|  FTS // XXVI                     VIKOLVERE · VRV |
-|  ----------------------------------------------  |
-|  DOMAIN    :  ftsduaenam.web.id                  |
-|  GATEWAY   :  taskpanel.ftsduaenam.web.id        |
-|  SIGNAL    :  admin@ftsduaenam.web.id            |
-|  STATUS    :  ACTIVE                             |
-+--------------------------------------------------+
-```
+<div align="center">
+  <br />
+  <pre>
+      /\
+     /  \
+    / /\ \
+   &lt;  \/  &gt;
+    \ /\ /
+     \  /
+      \/
+  </pre>
+  <h3><code>ftsduaenam.web.id</code></h3>
+  <p><em>vikolvere &middot; verivela &middot; xxvi</em></p>
+  <br />
+</div>
 
-# `FTSDUAENAM // XXVI`
+> *You were not meant to read the label. If you know where the door leads, step through.*
 
-*No noise. No prologue. If you belong inside, you already have the key.*
-
-- **01 // MONOLITH** : [ftsduaenam.web.id](https://ftsduaenam.web.id)
-- **02 // GATEWAY** : [taskpanel.ftsduaenam.web.id](https://taskpanel.ftsduaenam.web.id)
-- **03 // SIGNAL** : `admin@ftsduaenam.web.id`
+- `I` &middot; [ftsduaenam.web.id](https://ftsduaenam.web.id)
+- `II` &middot; [taskpanel.ftsduaenam.web.id](https://taskpanel.ftsduaenam.web.id)
+- `III` &middot; `admin@ftsduaenam.web.id`
 
 ---
 
 <details>
-<summary><code>// TRANSMISSION LOG · BUILD</code></summary>
+<summary><em>archive</em></summary>
 
 ```bash
 pnpm install

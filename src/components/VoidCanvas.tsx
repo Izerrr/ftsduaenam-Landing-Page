@@ -5,19 +5,21 @@ interface VoidCanvasProps {
   intensity?: "high" | "low";
 }
 
-interface DriftNode {
+interface AshMote {
   x: number;
   y: number;
   vx: number;
   vy: number;
-  size: number;
+  radius: number;
+  alpha: number;
   cobalt: boolean;
 }
 
 /**
- * Lightweight interactive vector-telemetry canvas for obsidian scenes.
- * Draws fine perspective contour arcs and cursor-deflected tactical particles
- * at 60fps. Automatically halts when offscreen or under prefers-reduced-motion.
+ * Uncanny abyssal atmosphere canvas for dark scenes.
+ * Renders slow-drifting spectral ash motes, faint hypnotic eclipse rings that subtly lean
+ * toward the pointer, and occasional ultra-thin analog signal traces (restrained, 60fps).
+ * Halts cleanly when offscreen or under prefers-reduced-motion.
  */
 export function VoidCanvas({ intensity = "high" }: VoidCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -33,12 +35,14 @@ export function VoidCanvas({ intensity = "high" }: VoidCanvasProps) {
     let isVisible = true;
     let width = 0;
     let height = 0;
-    let pointerX = -9999;
-    let pointerY = -9999;
+    let targetX = 0.5;
+    let targetY = 0.5;
+    let smoothX = 0.5;
+    let smoothY = 0.5;
     let tick = 0;
 
-    const nodeCount = intensity === "high" ? 42 : 24;
-    const nodes: DriftNode[] = [];
+    const moteCount = intensity === "high" ? 48 : 26;
+    const motes: AshMote[] = [];
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
@@ -49,15 +53,16 @@ export function VoidCanvas({ intensity = "high" }: VoidCanvasProps) {
       canvas.height = Math.max(1, Math.floor(height * dpr));
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      if (nodes.length === 0) {
-        for (let i = 0; i < nodeCount; i += 1) {
-          nodes.push({
+      if (motes.length === 0) {
+        for (let i = 0; i < moteCount; i += 1) {
+          motes.push({
             x: Math.random() * width,
             y: Math.random() * height,
-            vx: (Math.random() - 0.5) * 0.28,
-            vy: (Math.random() - 0.5) * 0.28,
-            size: Math.random() < 0.3 ? 2 : 1.2,
-            cobalt: i % 4 === 0,
+            vx: (Math.random() - 0.5) * 0.16,
+            vy: -0.06 - Math.random() * 0.18,
+            radius: 0.7 + Math.random() * 1.4,
+            alpha: 0.08 + Math.random() * 0.24,
+            cobalt: i % 6 === 0,
           });
         }
       }
@@ -65,13 +70,9 @@ export function VoidCanvas({ intensity = "high" }: VoidCanvasProps) {
 
     const onPointerMove = (event: PointerEvent) => {
       const rect = canvas.getBoundingClientRect();
-      pointerX = event.clientX - rect.left;
-      pointerY = event.clientY - rect.top;
-    };
-
-    const onPointerLeave = () => {
-      pointerX = -9999;
-      pointerY = -9999;
+      if (rect.width <= 0 || rect.height <= 0) return;
+      targetX = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+      targetY = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
     };
 
     const observer = new IntersectionObserver(
@@ -85,83 +86,67 @@ export function VoidCanvas({ intensity = "high" }: VoidCanvasProps) {
     resize();
     window.addEventListener("resize", resize, { passive: true });
     window.addEventListener("pointermove", onPointerMove, { passive: true });
-    window.addEventListener("pointerleave", onPointerLeave, { passive: true });
 
     const draw = () => {
       if (isVisible && width > 0 && height > 0) {
-        tick += 0.008;
+        tick += 0.0045;
+        smoothX += (targetX - smoothX) * 0.035;
+        smoothY += (targetY - smoothY) * 0.035;
+
         ctx.clearRect(0, 0, width, height);
 
-        // Architectural orbital contour rings centered slightly off-axis
-        const cx = width * 0.5 + Math.cos(tick * 0.6) * 18;
-        const cy = height * 0.5 + Math.sin(tick * 0.5) * 14;
-        const baseRadius = Math.min(width, height) * 0.34;
+        // Eerie concentric eclipse halo leaning slowly toward the visitor's pointer
+        const cx = width * (0.5 + (smoothX - 0.5) * 0.08);
+        const cy = height * (0.5 + (smoothY - 0.5) * 0.08);
+        const minSide = Math.min(width, height);
 
-        ctx.lineWidth = 1;
-        for (let r = 0; r < 3; r += 1) {
-          const radius = baseRadius + r * (intensity === "high" ? 78 : 96);
+        for (let r = 0; r < 4; r += 1) {
+          const radius = minSide * (0.22 + r * 0.12) + Math.sin(tick + r) * 5;
           ctx.beginPath();
+          ctx.lineWidth = r === 1 ? 1.1 : 0.75;
           ctx.strokeStyle =
             r === 1
-              ? "rgba(2, 88, 255, 0.16)"
-              : "rgba(255, 255, 255, 0.065)";
-          ctx.arc(cx, cy, radius, tick * (r % 2 === 0 ? 1 : -0.8), tick * (r % 2 === 0 ? 1 : -0.8) + Math.PI * 1.45);
+              ? "rgba(2, 88, 255, 0.15)"
+              : `rgba(242, 242, 238, ${(0.055 - r * 0.01).toFixed(3)})`;
+          ctx.arc(cx, cy, radius, 0, Math.PI * 2);
           ctx.stroke();
         }
 
-        // Subtle horizontal/vertical laser axis lines anchored to pointer
-        if (pointerX > 0 && pointerY > 0 && pointerX < width && pointerY < height) {
-          ctx.strokeStyle = "rgba(2, 88, 255, 0.12)";
+        // Faint horizontal analog signal tear line drifting slowly down
+        const scanY = ((tick * 52) % 1) * height;
+        ctx.fillStyle = "rgba(2, 88, 255, 0.06)";
+        ctx.fillRect(0, scanY, width, 1);
+
+        // Slow upward-drifting spectral dust motes
+        const px = smoothX * width;
+        const py = smoothY * height;
+
+        for (let i = 0; i < motes.length; i += 1) {
+          const m = motes[i];
+          const dx = m.x - px;
+          const dy = m.y - py;
+          const dist = Math.hypot(dx, dy);
+
+          // Motes glow brighter inside the pointer flashlight beam
+          const proximity = dist < 240 ? 1 - dist / 240 : 0;
+
+          m.x += m.vx + Math.sin(tick * 2 + i) * 0.06;
+          m.y += m.vy;
+
+          if (m.y < -4) {
+            m.y = height + 4;
+            m.x = Math.random() * width;
+          }
+          if (m.x < -4) m.x = width + 4;
+          if (m.x > width + 4) m.x = -4;
+
+          const effectiveAlpha = Math.min(0.85, m.alpha + proximity * 0.42);
           ctx.beginPath();
-          ctx.moveTo(0, pointerY);
-          ctx.lineTo(width, pointerY);
-          ctx.moveTo(pointerX, 0);
-          ctx.lineTo(pointerX, height);
-          ctx.stroke();
-        }
-
-        // Update and draw nodes + proximity filaments
-        const linkDist = intensity === "high" ? 132 : 110;
-        for (let i = 0; i < nodes.length; i += 1) {
-          const n = nodes[i];
-          const dxp = n.x - pointerX;
-          const dyp = n.y - pointerY;
-          const distP = Math.hypot(dxp, dyp);
-
-          if (distP > 0 && distP < 140) {
-            const push = (140 - distP) / 140;
-            n.x += (dxp / distP) * push * 1.1;
-            n.y += (dyp / distP) * push * 1.1;
-          }
-
-          n.x += n.vx;
-          n.y += n.vy;
-
-          if (n.x < 0) n.x = width;
-          if (n.x > width) n.x = 0;
-          if (n.y < 0) n.y = height;
-          if (n.y > height) n.y = 0;
-
-          ctx.fillStyle = n.cobalt
-            ? "rgba(2, 88, 255, 0.72)"
-            : "rgba(255, 255, 255, 0.28)";
-          ctx.fillRect(n.x - n.size * 0.5, n.y - n.size * 0.5, n.size, n.size);
-
-          for (let j = i + 1; j < nodes.length; j += 1) {
-            const m = nodes[j];
-            const dist = Math.hypot(n.x - m.x, n.y - m.y);
-            if (dist < linkDist) {
-              const alpha = (1 - dist / linkDist) * (n.cobalt || m.cobalt ? 0.22 : 0.08);
-              ctx.strokeStyle =
-                n.cobalt || m.cobalt
-                  ? `rgba(2, 88, 255, ${alpha.toFixed(3)})`
-                  : `rgba(255, 255, 255, ${alpha.toFixed(3)})`;
-              ctx.beginPath();
-              ctx.moveTo(n.x, n.y);
-              ctx.lineTo(m.x, m.y);
-              ctx.stroke();
-            }
-          }
+          ctx.fillStyle = m.cobalt
+            ? `rgba(92, 154, 255, ${effectiveAlpha.toFixed(3)})`
+            : `rgba(242, 242, 238, ${effectiveAlpha.toFixed(3)})`;
+          ctx.arc(m.x, m.y, m.radius + proximity * 0.7, 0, Math.PI * 2);
+          ctx.fill();
         }
       }
 
@@ -175,7 +160,6 @@ export function VoidCanvas({ intensity = "high" }: VoidCanvasProps) {
       observer.disconnect();
       window.removeEventListener("resize", resize);
       window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerleave", onPointerLeave);
     };
   }, [intensity, prefersReduced]);
 

@@ -1,23 +1,57 @@
+import { useEffect, useRef } from "react";
+import { useReducedMotion } from "motion/react";
+
 interface FtsLogoProps {
   className?: string;
   compact?: boolean;
   decorative?: boolean;
+  trackPointer?: boolean;
 }
 
 /**
- * Fierce geometric monolith sigil + razor wordmark for ftsduaenam (XXVI).
- * Features a chamfered twin-blade emblem sliced by an Electric Cobalt slash.
- * Uses currentColor for the frame/wordmark so it adapts instantly across Obsidian, Bone, and Cobalt Flood.
+ * Eerie minimalist Twin-V Eclipse / Watcher Sigil for ftsduaenam (Vikolvere & Verivela · XXVI).
+ * Two sharp opposing V-blades form a stark diamond eye-aperture with a cold Electric Cobalt slit iris
+ * that subtly follows the pointer across the screen when trackPointer is enabled.
  */
 export function FtsLogo({
   className = "h-9 w-auto",
   compact = false,
   decorative = true,
+  trackPointer = false,
 }: FtsLogoProps) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const irisRef = useRef<SVGGElement>(null);
+  const prefersReduced = Boolean(useReducedMotion());
+
+  useEffect(() => {
+    if (!trackPointer || prefersReduced) return;
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (!svgRef.current || !irisRef.current) return;
+      const rect = svgRef.current.getBoundingClientRect();
+      const cx = rect.left + (compact ? rect.width * 0.5 : 22);
+      const cy = rect.top + rect.height * 0.5;
+      const dx = event.clientX - cx;
+      const dy = event.clientY - cy;
+      const angle = Math.atan2(dy, dx);
+      const dist = Math.min(3.6, Math.hypot(dx, dy) / 140);
+      const tx = Math.cos(angle) * dist;
+      const ty = Math.sin(angle) * dist * 0.65;
+      irisRef.current.setAttribute(
+        "transform",
+        `translate(${tx.toFixed(2)} ${ty.toFixed(2)})`
+      );
+    };
+
+    window.addEventListener("pointermove", onPointerMove, { passive: true });
+    return () => window.removeEventListener("pointermove", onPointerMove);
+  }, [compact, prefersReduced, trackPointer]);
+
   if (compact) {
     return (
       <svg
-        viewBox="0 0 44 44"
+        ref={svgRef}
+        viewBox="0 0 48 44"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className={className}
@@ -26,23 +60,37 @@ export function FtsLogo({
         aria-label={decorative ? undefined : "ftsduaenam sigil"}
       >
         {!decorative && <title>ftsduaenam sigil</title>}
-        {/* Chamfered tactical monolith frame */}
-        <polygon
-          points="3,3 33,3 41,11 41,41 11,41 3,33"
+        {/* Sharp outer Twin-V eye diamond */}
+        <path
+          d="M3 22L24 6L45 22L24 38Z"
           stroke="currentColor"
-          strokeWidth="2.4"
+          strokeWidth="2"
         />
-        {/* Sharp diagonal twin-V blade slash */}
-        <polygon points="11,34 26,10 33,10 18,34" fill="var(--logo-accent, #0258FF)" />
-        <rect x="10" y="11" width="11" height="3" fill="currentColor" />
-        <rect x="23" y="30" width="11" height="3" fill="currentColor" />
+        {/* Inner faint eclipse ring */}
+        <circle
+          cx="24"
+          cy="22"
+          r="8.2"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          opacity="0.55"
+        />
+        {/* Tracking vertical slit iris */}
+        <g ref={irisRef}>
+          <path
+            d="M24 12.5L27 22L24 31.5L21 22Z"
+            fill="var(--logo-accent, #0258FF)"
+          />
+          <circle cx="24" cy="22" r="1.5" fill="currentColor" />
+        </g>
       </svg>
     );
   }
 
   return (
     <svg
-      viewBox="0 0 248 44"
+      ref={svgRef}
+      viewBox="0 0 256 44"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
@@ -52,48 +100,58 @@ export function FtsLogo({
     >
       {!decorative && <title>ftsduaenam</title>}
 
-      {/* Emblem: Chamfered obsidian/cobalt monolith sigil */}
+      {/* Emblem: Twin-V Eclipse Watcher Sigil */}
       <g>
-        <polygon
-          points="2,4 30,4 38,12 38,40 10,40 2,32"
+        <path
+          d="M2 22L22 7L42 22L22 37Z"
           stroke="currentColor"
-          strokeWidth="2.2"
+          strokeWidth="1.9"
         />
-        <polygon points="10,33 24,10 30,10 16,33" fill="var(--logo-accent, #0258FF)" />
-        <rect x="9" y="11" width="10" height="2.8" fill="currentColor" />
-        <rect x="21" y="29.5" width="10" height="2.8" fill="currentColor" />
+        <circle
+          cx="22"
+          cy="22"
+          r="7.4"
+          stroke="currentColor"
+          strokeWidth="1.1"
+          opacity="0.55"
+        />
+        <g ref={irisRef}>
+          <path
+            d="M22 13.5L24.8 22L22 30.5L19.2 22Z"
+            fill="var(--logo-accent, #0258FF)"
+          />
+          <circle cx="22" cy="22" r="1.4" fill="currentColor" />
+        </g>
       </g>
 
-      {/* Razor condensed monolith wordmark */}
+      {/* Stark editorial wordmark */}
       <text
-        x="48"
-        y="30"
+        x="52"
+        y="29.5"
         fill="currentColor"
         style={{
           fontFamily: "var(--font-condensed), sans-serif",
-          fontSize: "27px",
-          fontWeight: 800,
-          letterSpacing: "0.08em",
+          fontSize: "25px",
+          fontWeight: 700,
+          letterSpacing: "0.14em",
         }}
       >
         FTSDUAENAM
       </text>
 
-      {/* Slash + XXVI cohort stamp */}
-      <polygon points="197,31 206,12 209.5,12 200.5,31" fill="var(--logo-accent, #0258FF)" />
+      {/* Subtle Roman XXVI stamp */}
       <text
-        x="213"
-        y="29"
-        fill="currentColor"
-        opacity="0.72"
+        x="212"
+        y="28"
+        fill="var(--logo-accent, #0258FF)"
         style={{
-          fontFamily: "var(--font-condensed), sans-serif",
-          fontSize: "15px",
-          fontWeight: 700,
-          letterSpacing: "0.14em",
+          fontFamily: "var(--font-editorial), Georgia, serif",
+          fontStyle: "italic",
+          fontSize: "19px",
+          letterSpacing: "0.06em",
         }}
       >
-        XXVI
+        xxvi
       </text>
     </svg>
   );

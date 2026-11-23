@@ -10,16 +10,20 @@ import { VoidCanvas } from "@/components/VoidCanvas";
 
 const HOVER_SPRING = {
   type: "spring" as const,
-  stiffness: 280,
-  damping: 24,
+  stiffness: 240,
+  damping: 26,
 };
 
-const SIGNAL_BARS = [12, 24, 18, 34, 22, 30, 14];
+const HIDDEN_SIGNALS = [
+  "LEAVE A TRACE  ·  XXVI  ·  STILL LISTENING  ·  FTSDUAENAM  ·  LEAVE A TRACE",
+  "ADMIN@FTSDUAENAM.WEB.ID  ·  VIKOLVERE  ·  VERIVELA  ·  DO NOT FORGET",
+  "FATISDA UNS  ·  XXVI  ·  THE SIGNAL REMAINS  ·  VIKOLVERE  ·  VERIVELA",
+];
 
 /**
- * Scene 03: THE SIGNAL (Obsidian Dark #0B0B0C)
- * Ambient telemetry void, deep ghosted 26 parallax mark, reactive signal-bar glyph,
- * monumental CONTACT lockup, joined mailto + clipboard bar, and fierce minimal legal baseline.
+ * Scene III: THE WHISPER (Pitch Abyss #060607)
+ * Returns to pitch darkness with pointer-revealed shadows, drifting ghosted XXVI mark,
+ * haunted CONTACT display lockup, joined email + copy bar, and austere legal baseline.
  */
 export function SignalScene() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -32,7 +36,16 @@ export function SignalScene() {
     offset: ["start end", "end end"],
   });
 
-  const ghostY = useTransform(scrollYProgress, [0, 1], [60, -20]);
+  const ghostY = useTransform(scrollYProgress, [0, 1], [54, -16]);
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
+    if (prefersReduced || !sectionRef.current) return;
+    const rect = sectionRef.current.getBoundingClientRect();
+    const relX = ((event.clientX - rect.left) / rect.width) * 100;
+    const relY = ((event.clientY - rect.top) / rect.height) * 100;
+    sectionRef.current.style.setProperty("--mx", `${relX.toFixed(2)}%`);
+    sectionRef.current.style.setProperty("--my", `${relY.toFixed(2)}%`);
+  };
 
   const handleCopyEmail = async () => {
     try {
@@ -57,57 +70,55 @@ export function SignalScene() {
       id="signal"
       data-scene="signal"
       data-theme="dark"
-      className="relative flex min-h-[100dvh] w-full flex-col justify-between overflow-hidden bg-[#0B0B0C] px-4 pt-24 pb-24 text-white sm:px-8 sm:pb-28"
+      onPointerMove={handlePointerMove}
+      className="relative flex min-h-[100dvh] w-full flex-col justify-between overflow-hidden bg-[#060607] px-4 pt-24 pb-24 text-[#F2F2EE] sm:px-8 sm:pb-28"
     >
-      {/* Subtle low-intensity obsidian telemetry field */}
+      {/* Low-intensity ambient abyss motes */}
       <VoidCanvas intensity="low" />
 
-      {/* Ghosted giant 26 parallax watermark */}
+      {/* Hidden shadow whispers unveiled by pointer torch */}
+      <div
+        aria-hidden="true"
+        className="torch-reveal-mask pointer-events-none absolute inset-0 flex flex-col justify-around overflow-hidden py-24 opacity-60 select-none"
+      >
+        {HIDDEN_SIGNALS.map((line, idx) => (
+          <p
+            key={idx}
+            className="whitespace-nowrap font-editorial text-xl italic tracking-[0.34em] text-[#F2F2EE]/40 sm:text-2xl"
+            style={{ transform: `translateX(${idx % 2 === 0 ? "-6%" : "-14%"})` }}
+          >
+            {line}
+          </p>
+        ))}
+      </div>
+
+      {/* Cold pointer torch + claustrophobic vignette */}
+      <div aria-hidden="true" className="abyss-torch pointer-events-none absolute inset-0" />
+      <div aria-hidden="true" className="abyss-vignette pointer-events-none absolute inset-0" />
+
+      {/* Ghosted giant XXVI watermark */}
       <motion.div
         aria-hidden="true"
         style={prefersReduced ? undefined : { y: ghostY }}
         className="pointer-events-none absolute inset-0 flex items-center justify-center select-none"
       >
-        <span className="stroke-display-dark font-condensed text-[clamp(14rem,34vw,34rem)] leading-none font-extrabold tracking-[-0.06em] opacity-55">
-          26
+        <span className="stroke-display-dark font-editorial text-[clamp(11rem,28vw,28rem)] leading-none italic tracking-[-0.04em] opacity-45">
+          xxvi
         </span>
       </motion.div>
 
-      {/* Top index */}
+      {/* Top whisper */}
       <div className="relative z-10 mx-auto w-full max-w-[1440px] text-center">
-        <p className="font-condensed text-xs font-bold tracking-[0.28em] uppercase text-[#9A9A95] sm:text-sm">
-          03 // SIGNAL
+        <p className="font-editorial text-sm italic tracking-[0.28em] text-[#9B9B96] sm:text-base">
+          iii &middot; whisper
         </p>
       </div>
 
-      {/* Centerpiece CONTACT typography + transmission bar */}
+      {/* Centerpiece CONTACT display + transmission bar */}
       <div className="relative z-10 mx-auto my-auto flex w-full max-w-[1440px] flex-col items-center py-12 text-center">
-        {/* Signal frequency bars reacting to CONTACT hover */}
-        <div
-          aria-hidden="true"
-          className="mb-6 flex h-9 items-end justify-center gap-1.5"
-        >
-          {SIGNAL_BARS.map((height, idx) => (
-            <motion.span
-              key={idx}
-              initial={false}
-              animate={
-                prefersReduced
-                  ? { height }
-                  : {
-                      height: contactHovered ? Math.min(36, height + 10) : height,
-                      backgroundColor: contactHovered ? "#0258FF" : "rgba(255,255,255,0.35)",
-                    }
-              }
-              transition={{ ...HOVER_SPRING, delay: idx * 0.02 }}
-              className="w-[3px] bg-white/35"
-            />
-          ))}
-        </div>
-
         <motion.a
           href={URLS.email}
-          data-cursor="SIGNAL"
+          data-cursor="reach"
           onMouseEnter={() => setContactHovered(true)}
           onMouseLeave={() => setContactHovered(false)}
           onFocus={() => setContactHovered(true)}
@@ -120,10 +131,12 @@ export function SignalScene() {
               animate={
                 prefersReduced
                   ? undefined
-                  : { x: contactHovered ? -10 : 0 }
+                  : { x: contactHovered ? -9 : 0 }
               }
               transition={HOVER_SPRING}
-              className="font-condensed text-[clamp(3.3rem,1.6rem+10vw,7.4rem)] leading-[0.86] font-extrabold tracking-[-0.04em] uppercase text-white md:text-[clamp(6rem,2.2rem+9.8vw,13rem)]"
+              className={`font-condensed text-[clamp(3.3rem,1.6rem+10vw,7.4rem)] leading-[0.86] font-extrabold tracking-[-0.04em] uppercase text-[#F2F2EE] transition-all duration-200 md:text-[clamp(6rem,2.2rem+9.8vw,13rem)] ${
+                contactHovered ? "ghost-echo-cobalt" : ""
+              }`}
             >
               CON
             </motion.span>
@@ -131,19 +144,21 @@ export function SignalScene() {
               animate={
                 prefersReduced
                   ? undefined
-                  : { x: contactHovered ? 10 : 0 }
+                  : { x: contactHovered ? 9 : 0 }
               }
               transition={HOVER_SPRING}
-              className="pb-2 font-editorial text-[clamp(3.5rem,1.7rem+10.5vw,7.8rem)] leading-[0.88] italic tracking-[-0.02em] text-white transition-colors duration-200 group-hover:text-[#0258FF] md:text-[clamp(6.3rem,2.4rem+10.2vw,13.6rem)]"
+              className={`pb-2 font-editorial text-[clamp(3.5rem,1.7rem+10.5vw,7.8rem)] leading-[0.88] italic tracking-[-0.02em] transition-colors duration-300 md:text-[clamp(6.3rem,2.4rem+10.2vw,13.6rem)] ${
+                contactHovered ? "text-[#0258FF] ghost-echo-cobalt" : "text-[#F2F2EE]"
+              }`}
             >
               TACT
             </motion.span>
           </span>
 
-          {/* Electric cobalt sweep line */}
+          {/* Razor cold cobalt underline */}
           <span
             aria-hidden="true"
-            className="mt-2 block h-[2px] w-full bg-white/15"
+            className="mt-2 block h-[1.5px] w-full bg-[#F2F2EE]/15"
           >
             <motion.span
               initial={false}
@@ -154,22 +169,22 @@ export function SignalScene() {
           </span>
         </motion.a>
 
-        {/* Joined razor transmission bar: mailto + clipboard copy */}
-        <div className="mt-7 flex flex-wrap items-stretch justify-center border border-white/25 bg-[#0B0B0C]/80">
+        {/* Stark joined email + copy threshold */}
+        <div className="mt-7 flex flex-wrap items-stretch justify-center border border-[#F2F2EE]/20 bg-[#060607]/85">
           <a
             href={URLS.email}
-            data-cursor="MAIL"
-            className="inline-flex min-h-[48px] items-center gap-2.5 px-5 font-mono text-xs tracking-[0.06em] text-white transition-colors hover:bg-[#0258FF] sm:text-sm"
+            data-cursor="mail"
+            className="inline-flex min-h-[48px] items-center gap-2.5 px-5 font-mono text-xs tracking-[0.06em] text-[#F2F2EE] transition-colors hover:bg-[#0258FF] hover:text-white sm:text-sm"
           >
             <span>{URLS.emailDisplay}</span>
-            <ArrowUpRightIcon size={16} weight="bold" aria-hidden="true" />
+            <ArrowUpRightIcon size={15} weight="regular" aria-hidden="true" />
           </a>
 
           <button
             type="button"
             onClick={handleCopyEmail}
-            data-cursor="COPY"
-            className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 border-l border-white/25 px-4 font-condensed text-xs font-extrabold tracking-[0.18em] uppercase text-[#9A9A95] transition-colors hover:bg-white hover:text-[#0B0B0C] active:scale-[0.98]"
+            data-cursor="copy"
+            className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 border-l border-[#F2F2EE]/20 px-4 font-condensed text-xs font-bold tracking-[0.2em] uppercase text-[#9B9B96] transition-colors hover:bg-[#F2F2EE] hover:text-[#060607] active:scale-[0.98]"
           >
             {copied ? (
               <>
@@ -178,7 +193,7 @@ export function SignalScene() {
               </>
             ) : (
               <>
-                <CopyIcon size={15} weight="bold" aria-hidden="true" />
+                <CopyIcon size={15} weight="regular" aria-hidden="true" />
                 <span>SALIN</span>
               </>
             )}
@@ -189,13 +204,13 @@ export function SignalScene() {
         </div>
       </div>
 
-      {/* Fierce Minimal Baseline */}
-      <div className="relative z-10 mx-auto w-full max-w-[1440px] border-t border-white/15 pt-6">
+      {/* Austere Minimal Baseline */}
+      <div className="relative z-10 mx-auto w-full max-w-[1440px] border-t border-[#F2F2EE]/15 pt-6">
         <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
           <div className="flex items-center gap-3">
-            <FtsLogo compact className="h-7 w-7 text-white" />
-            <p className="font-condensed text-xs font-bold tracking-[0.2em] uppercase text-[#9A9A95]">
-              {IDENTITY.domain} &middot; {IDENTITY.facultyCode}
+            <FtsLogo compact trackPointer className="h-7 w-8 text-[#F2F2EE]" />
+            <p className="font-editorial text-sm italic tracking-[0.2em] text-[#9B9B96]">
+              {IDENTITY.domain} &middot; xxvi
             </p>
           </div>
 
@@ -204,8 +219,8 @@ export function SignalScene() {
               href={URLS.login}
               target="_blank"
               rel="noopener noreferrer"
-              data-cursor="LOGIN"
-              className="inline-flex min-h-[44px] items-center font-condensed text-xs font-bold tracking-[0.18em] uppercase text-white transition-colors hover:text-[#60A5FA]"
+              data-cursor="login"
+              className="inline-flex min-h-[44px] items-center font-condensed text-xs font-bold tracking-[0.2em] uppercase text-[#F2F2EE] transition-colors hover:text-[#5C9AFF]"
             >
               LOGIN
             </a>
@@ -213,7 +228,7 @@ export function SignalScene() {
               href={URLS.privacy}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-[44px] items-center font-condensed text-xs font-bold tracking-[0.18em] uppercase text-[#9A9A95] transition-colors hover:text-white"
+              className="inline-flex min-h-[44px] items-center font-condensed text-xs font-bold tracking-[0.2em] uppercase text-[#9B9B96] transition-colors hover:text-[#F2F2EE]"
             >
               PRIVACY
             </a>
@@ -221,18 +236,18 @@ export function SignalScene() {
               href={URLS.terms}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-[44px] items-center font-condensed text-xs font-bold tracking-[0.18em] uppercase text-[#9A9A95] transition-colors hover:text-white"
+              className="inline-flex min-h-[44px] items-center font-condensed text-xs font-bold tracking-[0.2em] uppercase text-[#9B9B96] transition-colors hover:text-[#F2F2EE]"
             >
               TERMS
             </a>
             <button
               type="button"
               onClick={scrollToTop}
-              data-cursor="TOP"
+              data-cursor="top"
               aria-label="Kembali ke paling atas"
-              className="inline-flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center gap-1.5 border border-white/25 px-3 font-condensed text-xs font-bold tracking-[0.16em] uppercase text-white transition-colors hover:border-white hover:bg-white hover:text-[#0B0B0C]"
+              className="inline-flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center gap-1.5 border border-[#F2F2EE]/20 px-3 font-condensed text-xs font-bold tracking-[0.18em] uppercase text-[#F2F2EE] transition-colors hover:border-[#F2F2EE] hover:bg-[#F2F2EE] hover:text-[#060607]"
             >
-              <ArrowUpIcon size={14} weight="bold" aria-hidden="true" />
+              <ArrowUpIcon size={14} weight="regular" aria-hidden="true" />
               <span>TOP</span>
             </button>
           </div>

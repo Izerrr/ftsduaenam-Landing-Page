@@ -1,22 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, useMotionValue, useReducedMotion, useSpring } from "motion/react";
 
 /**
- * Desktop-only tactical reticle cursor (Lando Norris x Why Zero feel).
- * Uses MotionValues + Springs exclusively for position (zero React re-renders on move)
- * and snaps into locked target brackets whenever hovering elements marked with [data-cursor].
+ * Uncanny desktop watcher cursor (mix-blend-difference).
+ * Tracks the pointer with hypnotic slow-lag spring inertia; when hovering a threshold
+ * marked with [data-cursor], the thin circle widens into an eerie diamond eye-slit.
  */
-export function TacticalCursor() {
+export function WatcherCursor() {
   const prefersReduced = Boolean(useReducedMotion());
   const [enabled, setEnabled] = useState(false);
   const [visible, setVisible] = useState(false);
   const [cursorLabel, setCursorLabel] = useState<string | null>(null);
-  const coordRef = useRef<HTMLSpanElement>(null);
 
-  const mouseX = useMotionValue(-100);
-  const mouseY = useMotionValue(-100);
-  const smoothX = useSpring(mouseX, { stiffness: 420, damping: 32, mass: 0.45 });
-  const smoothY = useSpring(mouseY, { stiffness: 420, damping: 32, mass: 0.45 });
+  const mouseX = useMotionValue(-120);
+  const mouseY = useMotionValue(-120);
+  const smoothX = useSpring(mouseX, { stiffness: 260, damping: 28, mass: 0.65 });
+  const smoothY = useSpring(mouseY, { stiffness: 260, damping: 28, mass: 0.65 });
 
   useEffect(() => {
     if (prefersReduced) return;
@@ -34,12 +33,6 @@ export function TacticalCursor() {
       mouseX.set(event.clientX);
       mouseY.set(event.clientY);
       setVisible(true);
-
-      if (coordRef.current) {
-        const x = String(Math.round(event.clientX)).padStart(4, "0");
-        const y = String(Math.round(event.clientY)).padStart(4, "0");
-        coordRef.current.textContent = `${x}.${y}`;
-      }
 
       const target = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-cursor]");
       const nextLabel = target?.dataset.cursor ?? null;
@@ -74,44 +67,29 @@ export function TacticalCursor() {
       animate={{
         opacity: visible ? 1 : 0,
       }}
-      transition={{ duration: 0.16 }}
+      transition={{ duration: 0.22 }}
       className="pointer-events-none fixed top-0 left-0 z-50 hidden mix-blend-difference md:block"
     >
-      {/* Outer reticle / locking brackets */}
       <motion.div
         animate={{
-          width: isLocked ? 88 : 30,
-          height: isLocked ? 34 : 30,
-          x: isLocked ? -44 : -15,
-          y: isLocked ? -17 : -15,
+          width: isLocked ? 72 : 26,
+          height: isLocked ? 72 : 26,
+          x: isLocked ? -36 : -13,
+          y: isLocked ? -36 : -13,
+          rotate: isLocked ? 45 : 0,
+          borderRadius: isLocked ? "0%" : "9999px",
         }}
-        transition={{ type: "spring", stiffness: 420, damping: 28 }}
+        transition={{ type: "spring", stiffness: 280, damping: 24 }}
         className="relative flex items-center justify-center border border-white/80"
       >
-        {/* Corner notches when locked */}
-        <span className="absolute -top-[1px] -left-[1px] h-2 w-2 border-t-2 border-l-2 border-white" />
-        <span className="absolute -top-[1px] -right-[1px] h-2 w-2 border-t-2 border-r-2 border-white" />
-        <span className="absolute -bottom-[1px] -left-[1px] h-2 w-2 border-b-2 border-l-2 border-white" />
-        <span className="absolute -right-[1px] -bottom-[1px] h-2 w-2 border-r-2 border-b-2 border-white" />
-
         {isLocked ? (
-          <span className="font-condensed text-[11px] font-extrabold tracking-[0.18em] uppercase text-white">
+          <span className="-rotate-45 font-editorial text-xs italic tracking-[0.2em] text-white">
             {cursorLabel}
           </span>
         ) : (
-          <span className="h-1 w-1 bg-white" />
+          <span className="h-2.5 w-[1.5px] bg-white" />
         )}
       </motion.div>
-
-      {/* Live cryptic coordinate whisper */}
-      {!isLocked && (
-        <span
-          ref={coordRef}
-          className="absolute top-4 left-5 font-mono text-[10px] tracking-[0.12em] text-white/75"
-        >
-          0000.0000
-        </span>
-      )}
     </motion.div>
   );
 }

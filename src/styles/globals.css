@@ -5,17 +5,19 @@
   --font-editorial: "Instrument Serif", Georgia, "Times New Roman", serif;
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-  --color-obsidian: #0B0B0C;
-  --color-bone: #F4F4F0;
+  --color-abyss: #060607;
+  --color-bone: #EAE8E1;
   --color-cobalt: #0258FF;
-  --color-ash: #9A9A95;
-  --color-slate-ink: #4A4A46;
+  --color-cobalt-light: #5C9AFF;
+  --color-cobalt-deep: #004BE0;
+  --color-ash: #9B9B96;
+  --color-slate-ink: #474742;
 }
 
 @layer base {
   html {
-    background-color: var(--color-obsidian);
-    color: #ffffff;
+    background-color: var(--color-abyss);
+    color: #F2F2EE;
     font-family: var(--font-sans);
     line-height: 1.45;
     text-align: start;
@@ -36,16 +38,16 @@
   }
 
   :where(a, button, [tabindex]):focus-visible {
-    outline: 3px solid var(--color-cobalt);
+    outline: 3px solid var(--color-cobalt-light);
     outline-offset: 4px;
   }
 
-  [data-theme="dark"] :where(a, button, [tabindex]):focus-visible {
-    outline-color: #ffffff;
+  [data-theme="light"] :where(a, button, [tabindex]):focus-visible {
+    outline-color: var(--color-cobalt-deep);
   }
 
-  [data-portal-flood="true"] :where(a, button, [tabindex]):focus-visible {
-    outline-color: #ffffff;
+  [data-portal-eclipse="true"] :where(a, button, [tabindex]):focus-visible {
+    outline-color: #F2F2EE;
   }
 }
 
@@ -68,12 +70,12 @@
   left: 1rem;
   z-index: 100;
   background-color: var(--color-cobalt);
-  color: #ffffff;
-  border: 1.5px solid #ffffff;
+  color: #F2F2EE;
+  border: 1.5px solid #F2F2EE;
   padding: 0.65rem 1.15rem;
   font-family: var(--font-condensed);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -102,30 +104,66 @@
   }
 }
 
-/* Pointer-reactive electric cobalt obsidian spotlight */
-.monolith-aura {
+/* Eerie cold pointer torch illuminating the dark room */
+.abyss-torch {
   background: radial-gradient(
-    560px circle at var(--mx, 50%) var(--my, 50%),
-    rgb(2 88 255 / 0.28),
-    rgb(2 88 255 / 0.08) 40%,
-    transparent 74%
+    460px circle at var(--mx, 50%) var(--my, 50%),
+    rgb(2 88 255 / 0.18),
+    rgb(242 242 238 / 0.04) 36%,
+    transparent 70%
   );
 }
 
-/* Subtle analog cinema grain for physical depth without clutter */
+/* Flashlight mask: hidden dark inscriptions only emerge inside the pointer beam */
+.torch-reveal-mask {
+  -webkit-mask-image: radial-gradient(
+    300px circle at var(--mx, 50%) var(--my, 50%),
+    rgb(0 0 0 / 0.92) 0%,
+    rgb(0 0 0 / 0.35) 55%,
+    transparent 82%
+  );
+  mask-image: radial-gradient(
+    300px circle at var(--mx, 50%) var(--my, 50%),
+    rgb(0 0 0 / 0.92) 0%,
+    rgb(0 0 0 / 0.35) 55%,
+    transparent 82%
+  );
+}
+
+/* Deep claustrophobic cinema vignette */
+.abyss-vignette {
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    transparent 38%,
+    rgb(0 0 0 / 0.72) 100%
+  );
+}
+
+/* Subtle analog cinema grain + ultra-faint CRT scanline veil (touch of eerie tech) */
 .cinema-grain {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.88' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
   background-size: 180px 180px;
 }
 
-/* Ghost outline display lettering */
-.stroke-display-dark {
-  -webkit-text-stroke: 1.5px rgb(255 255 255 / 0.22);
-  color: transparent;
+.crt-scanlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgb(255 255 255 / 0.025) 3px,
+    rgb(255 255 255 / 0.025) 4px
+  );
 }
 
-.stroke-display-light {
-  -webkit-text-stroke: 1.5px rgb(11 11 12 / 0.14);
+/* Subtle phosphor ghost-echo for haunted editorial type */
+.ghost-echo-cobalt {
+  text-shadow:
+    -2px 0 0 rgb(2 88 255 / 0.55),
+    2px 0 0 rgb(242 242 238 / 0.16);
+}
+
+.stroke-display-dark {
+  -webkit-text-stroke: 1.25px rgb(242 242 238 / 0.22);
   color: transparent;
 }
 
