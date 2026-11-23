@@ -1,11 +1,22 @@
 export const URLS = {
   portal: "https://ftsduaenam.web.id",
   taskpanel: "https://taskpanel.ftsduaenam.web.id",
+  constella: "https://networking-ops.ftsduaenam.web.id",
   login: "https://taskpanel.ftsduaenam.web.id/login",
   privacy: "https://taskpanel.ftsduaenam.web.id/privacy",
   terms: "https://taskpanel.ftsduaenam.web.id/terms",
   email: "mailto:admin@ftsduaenam.web.id",
   emailDisplay: "admin@ftsduaenam.web.id",
+} as const;
+
+export const ARCHIVE_MODULE = {
+  badge: "ARCHIVED · 26",
+  firstWord: "CON",
+  secondWord: "STELLA",
+  metrics: "37 OPS · 31 SESSIONS · 182",
+  domain: "NETWORKING-OPS.FTSDUAENAM.WEB.ID",
+  shortDomain: "NETWORKING-OPS",
+  href: URLS.constella,
 } as const;
 
 export const IDENTITY = {

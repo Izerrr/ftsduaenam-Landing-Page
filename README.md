@@ -6,6 +6,7 @@
 | :--- | :--- |
 | `01` | [ftsduaenam.web.id](https://ftsduaenam.web.id) |
 | `02` | [taskpanel.ftsduaenam.web.id](https://taskpanel.ftsduaenam.web.id) |
+| `02 · Archive` | [networking-ops.ftsduaenam.web.id](https://networking-ops.ftsduaenam.web.id) |
 | `03` | `admin@ftsduaenam.web.id` |
 
 <details>

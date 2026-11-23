@@ -402,6 +402,16 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                   <ArrowUpRightIcon size={14} weight="bold" aria-hidden="true" />
                 </a>
                 <a
+                  href={URLS.constella}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => studioSound.playClick()}
+                  className="inline-flex min-h-[44px] items-center gap-1 font-condensed font-bold tracking-[0.16em] uppercase text-[#A1A19C] hover:text-white"
+                >
+                  <span>CONSTELLA</span>
+                  <ArrowUpRightIcon size={14} weight="bold" aria-hidden="true" />
+                </a>
+                <a
                   href={URLS.login}
                   target="_blank"
                   rel="noopener noreferrer"
