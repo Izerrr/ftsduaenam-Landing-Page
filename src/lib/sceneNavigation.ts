@@ -1,7 +1,16 @@
 let lastNonNumericKeyTime = 0;
+let legalReturnHash = "#monolith";
+
+export type LegalTab = "privacy" | "terms";
 
 export function isSurveyPanelHash(hash: string): boolean {
   return hash === "#surveypanel" || hash === "#mading";
+}
+
+export function getLegalTabFromHash(hash: string): LegalTab | null {
+  if (hash === "#privacy") return "privacy";
+  if (hash === "#terms") return "terms";
+  return null;
 }
 
 /**
@@ -26,6 +35,29 @@ export function closeSurveyPanel() {
   }
   window.dispatchEvent(
     new CustomEvent<boolean>("fts:surveypanel", { detail: false })
+  );
+}
+
+export function openLegalSheet(tab: LegalTab) {
+  const currentHash = window.location.hash;
+  if (currentHash !== "#privacy" && currentHash !== "#terms") {
+    legalReturnHash = currentHash || "#monolith";
+  }
+  const nextHash = tab === "privacy" ? "#privacy" : "#terms";
+  if (window.location.hash !== nextHash) {
+    window.history.pushState(null, "", nextHash);
+  }
+  window.dispatchEvent(
+    new CustomEvent<LegalTab | null>("fts:legal", { detail: tab })
+  );
+}
+
+export function closeLegalSheet() {
+  if (getLegalTabFromHash(window.location.hash)) {
+    window.history.pushState(null, "", legalReturnHash);
+  }
+  window.dispatchEvent(
+    new CustomEvent<LegalTab | null>("fts:legal", { detail: null })
   );
 }
 

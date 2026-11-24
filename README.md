@@ -9,6 +9,7 @@
 | `02 · SurveyPanel` | [ftsduaenam.web.id/#surveypanel](https://ftsduaenam.web.id/#surveypanel) |
 | `02 · Archive` | [networking-ops.ftsduaenam.web.id](https://networking-ops.ftsduaenam.web.id) |
 | `03` | `admin@ftsduaenam.web.id` |
+| `03 · Legal` | [Privacy](#privacy) &middot; [Terms](#terms) |
 
 <details>
 <summary>Build</summary>

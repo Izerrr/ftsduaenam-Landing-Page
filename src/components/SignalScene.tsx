@@ -246,8 +246,6 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
               </a>
               <a
                 href={URLS.privacy}
-                target="_blank"
-                rel="noopener noreferrer"
                 onClick={() => studioSound.playClick()}
                 className="inline-flex min-h-[44px] items-center font-condensed text-xs font-bold tracking-[0.16em] uppercase text-[#A1A19C] transition-colors hover:text-white"
               >
@@ -255,8 +253,6 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
               </a>
               <a
                 href={URLS.terms}
-                target="_blank"
-                rel="noopener noreferrer"
                 onClick={() => studioSound.playClick()}
                 className="inline-flex min-h-[44px] items-center font-condensed text-xs font-bold tracking-[0.16em] uppercase text-[#A1A19C] transition-colors hover:text-white"
               >

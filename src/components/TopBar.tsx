@@ -598,18 +598,22 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
                 </a>
                 <a
                   href={URLS.privacy}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => studioSound.playClick()}
+                  onClick={() => {
+                    studioSound.playClick();
+                    setMenuOpen(false);
+                    setHoveredScene(null);
+                  }}
                   className="inline-flex min-h-[44px] items-center font-condensed font-bold tracking-[0.16em] uppercase text-[#A1A19C] transition-colors hover:text-white"
                 >
                   PRIVACY
                 </a>
                 <a
                   href={URLS.terms}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => studioSound.playClick()}
+                  onClick={() => {
+                    studioSound.playClick();
+                    setMenuOpen(false);
+                    setHoveredScene(null);
+                  }}
                   className="inline-flex min-h-[44px] items-center font-condensed font-bold tracking-[0.16em] uppercase text-[#A1A19C] transition-colors hover:text-white"
                 >
                   TERMS

@@ -10,11 +10,24 @@ import { StudioContextMenu } from "@/components/StudioContextMenu";
 import { MonolithScene } from "@/components/MonolithScene";
 import { PortalScene } from "@/components/PortalScene";
 import { SignalScene } from "@/components/SignalScene";
-import { closeSurveyPanel, isSurveyPanelHash } from "@/lib/sceneNavigation";
+import {
+  type LegalTab,
+  closeLegalSheet,
+  closeSurveyPanel,
+  getLegalTabFromHash,
+  isSurveyPanelHash,
+  openLegalSheet,
+} from "@/lib/sceneNavigation";
 
 const SurveyPanelBoard = lazy(() =>
   import("@/features/mading/MadingBoard").then((mod) => ({
     default: mod.MadingBoard,
+  }))
+);
+
+const LegalSheet = lazy(() =>
+  import("@/components/LegalSheet").then((mod) => ({
+    default: mod.LegalSheet,
   }))
 );
 
@@ -24,23 +37,33 @@ export function App() {
   const [surveyPanelOpen, setSurveyPanelOpen] = useState(() =>
     isSurveyPanelHash(window.location.hash)
   );
+  const [legalTab, setLegalTab] = useState<LegalTab | null>(() =>
+    getLegalTabFromHash(window.location.hash)
+  );
 
   useEffect(() => {
     const syncHash = () => {
-      setSurveyPanelOpen(isSurveyPanelHash(window.location.hash));
+      const hash = window.location.hash;
+      setSurveyPanelOpen(isSurveyPanelHash(hash));
+      setLegalTab(getLegalTabFromHash(hash));
     };
     const onSurveyPanelEvent = (event: Event) => {
       setSurveyPanelOpen(Boolean((event as CustomEvent<boolean>).detail));
+    };
+    const onLegalEvent = (event: Event) => {
+      setLegalTab((event as CustomEvent<LegalTab | null>).detail ?? null);
     };
 
     window.addEventListener("hashchange", syncHash);
     window.addEventListener("popstate", syncHash);
     window.addEventListener("fts:surveypanel", onSurveyPanelEvent);
+    window.addEventListener("fts:legal", onLegalEvent);
 
     return () => {
       window.removeEventListener("hashchange", syncHash);
       window.removeEventListener("popstate", syncHash);
       window.removeEventListener("fts:surveypanel", onSurveyPanelEvent);
+      window.removeEventListener("fts:legal", onLegalEvent);
     };
   }, []);
 
@@ -53,6 +76,7 @@ export function App() {
   }, []);
 
   const cobaltSurfaceActive = portalFloodActive || monolithCobaltBridge;
+  const hideMainBar = surveyPanelOpen || Boolean(legalTab);
 
   return (
     <MotionConfig reducedMotion="user">
@@ -85,7 +109,7 @@ export function App() {
         {/* Minimalist right-click quick action pill */}
         <StudioContextMenu />
 
-        {!surveyPanelOpen && <TopBar portalFloodActive={portalFloodActive} />}
+        {!hideMainBar && <TopBar portalFloodActive={portalFloodActive} />}
 
         <main>
           <MonolithScene onCobaltCoverChange={handleCobaltBridgeChange} />
@@ -98,6 +122,18 @@ export function App() {
           {surveyPanelOpen && (
             <Suspense fallback={null}>
               <SurveyPanelBoard onClose={closeSurveyPanel} />
+            </Suspense>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {legalTab && (
+            <Suspense fallback={null}>
+              <LegalSheet
+                tab={legalTab}
+                onSwitchTab={openLegalSheet}
+                onClose={closeLegalSheet}
+              />
             </Suspense>
           )}
         </AnimatePresence>

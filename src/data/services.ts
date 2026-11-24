@@ -3,8 +3,8 @@ export const URLS = {
   taskpanel: "https://taskpanel.ftsduaenam.web.id",
   constella: "https://networking-ops.ftsduaenam.web.id",
   login: "https://taskpanel.ftsduaenam.web.id/login",
-  privacy: "https://taskpanel.ftsduaenam.web.id/privacy",
-  terms: "https://taskpanel.ftsduaenam.web.id/terms",
+  privacy: "#privacy",
+  terms: "#terms",
   email: "mailto:admin@ftsduaenam.web.id",
   emailDisplay: "admin@ftsduaenam.web.id",
 } as const;

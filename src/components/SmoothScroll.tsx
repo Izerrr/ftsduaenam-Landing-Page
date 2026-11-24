@@ -3,8 +3,10 @@ import Lenis from "lenis";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { studioSound } from "@/lib/studioSound";
 import {
+  getLegalTabFromHash,
   isSurveyPanelHash,
   isTypingBurstActive,
+  openLegalSheet,
   openSurveyPanel,
 } from "@/lib/sceneNavigation";
 
@@ -113,6 +115,12 @@ export function SmoothScroll() {
         openSurveyPanel();
         return;
       }
+      const nextLegalTab = getLegalTabFromHash(hash);
+      if (nextLegalTab) {
+        event.preventDefault();
+        openLegalSheet(nextLegalTab);
+        return;
+      }
       const target = document.querySelector<HTMLElement>(hash);
       if (!target) return;
       event.preventDefault();
@@ -122,7 +130,11 @@ export function SmoothScroll() {
     // Keyboard shortcuts: press 1, 2, or 3 to jump straight to scenes 01 / 02 / 03
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
-      if (document.querySelector("[data-surveypanel-dialog='true']")) {
+      if (
+        document.querySelector(
+          "[data-surveypanel-dialog='true'], [data-legal-dialog='true']"
+        )
+      ) {
         return;
       }
       const activeTag = document.activeElement?.tagName;

@@ -202,7 +202,11 @@ export function MadingBoard({ onClose }: MadingBoardProps) {
     containerRef.current?.focus();
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !qrOpen) {
+      if (
+        event.key === "Escape" &&
+        !qrOpen &&
+        !document.querySelector("[data-legal-dialog='true']")
+      ) {
         onClose();
       }
     };
@@ -1456,8 +1460,6 @@ export function MadingBoard({ onClose }: MadingBoardProps) {
             </a>
             <a
               href={URLS.privacy}
-              target="_blank"
-              rel="noopener noreferrer"
               onClick={() => studioSound.playClick()}
               className="inline-flex min-h-[44px] items-center font-condensed text-xs font-bold tracking-[0.16em] uppercase text-[#A1A19C] transition-colors hover:text-white"
             >
@@ -1465,8 +1467,6 @@ export function MadingBoard({ onClose }: MadingBoardProps) {
             </a>
             <a
               href={URLS.terms}
-              target="_blank"
-              rel="noopener noreferrer"
               onClick={() => studioSound.playClick()}
               className="inline-flex min-h-[44px] items-center font-condensed text-xs font-bold tracking-[0.16em] uppercase text-[#A1A19C] transition-colors hover:text-white"
             >
