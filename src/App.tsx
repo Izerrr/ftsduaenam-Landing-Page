@@ -1,5 +1,5 @@
-import { useCallback, useState } from "react";
-import { MotionConfig } from "motion/react";
+import { Suspense, lazy, useCallback, useEffect, useState } from "react";
+import { AnimatePresence, MotionConfig } from "motion/react";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { StudioPreloader } from "@/components/StudioPreloader";
 import { StudioCursor } from "@/components/StudioCursor";
@@ -10,10 +10,39 @@ import { StudioContextMenu } from "@/components/StudioContextMenu";
 import { MonolithScene } from "@/components/MonolithScene";
 import { PortalScene } from "@/components/PortalScene";
 import { SignalScene } from "@/components/SignalScene";
+import { closeSurveyPanel, isSurveyPanelHash } from "@/lib/sceneNavigation";
+
+const SurveyPanelBoard = lazy(() =>
+  import("@/features/mading/MadingBoard").then((mod) => ({
+    default: mod.MadingBoard,
+  }))
+);
 
 export function App() {
   const [portalFloodActive, setPortalFloodActive] = useState(false);
   const [monolithCobaltBridge, setMonolithCobaltBridge] = useState(false);
+  const [surveyPanelOpen, setSurveyPanelOpen] = useState(() =>
+    isSurveyPanelHash(window.location.hash)
+  );
+
+  useEffect(() => {
+    const syncHash = () => {
+      setSurveyPanelOpen(isSurveyPanelHash(window.location.hash));
+    };
+    const onSurveyPanelEvent = (event: Event) => {
+      setSurveyPanelOpen(Boolean((event as CustomEvent<boolean>).detail));
+    };
+
+    window.addEventListener("hashchange", syncHash);
+    window.addEventListener("popstate", syncHash);
+    window.addEventListener("fts:surveypanel", onSurveyPanelEvent);
+
+    return () => {
+      window.removeEventListener("hashchange", syncHash);
+      window.removeEventListener("popstate", syncHash);
+      window.removeEventListener("fts:surveypanel", onSurveyPanelEvent);
+    };
+  }, []);
 
   const handleFloodChange = useCallback((active: boolean) => {
     setPortalFloodActive(active);
@@ -56,7 +85,7 @@ export function App() {
         {/* Minimalist right-click quick action pill */}
         <StudioContextMenu />
 
-        <TopBar portalFloodActive={portalFloodActive} />
+        {!surveyPanelOpen && <TopBar portalFloodActive={portalFloodActive} />}
 
         <main>
           <MonolithScene onCobaltCoverChange={handleCobaltBridgeChange} />
@@ -64,6 +93,14 @@ export function App() {
         </main>
 
         <SignalScene portalFloodActive={portalFloodActive} />
+
+        <AnimatePresence>
+          {surveyPanelOpen && (
+            <Suspense fallback={null}>
+              <SurveyPanelBoard onClose={closeSurveyPanel} />
+            </Suspense>
+          )}
+        </AnimatePresence>
       </div>
     </MotionConfig>
   );

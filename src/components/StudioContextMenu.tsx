@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { ArrowRightIcon } from "@phosphor-icons/react/ArrowRight";
 import { ArrowUpRightIcon } from "@phosphor-icons/react/ArrowUpRight";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { EraserIcon } from "@phosphor-icons/react/Eraser";
 import { URLS } from "@/data/services";
+import { openSurveyPanel } from "@/lib/sceneNavigation";
 import { dispatchClearInk } from "@/lib/studioEvents";
 import { studioSound } from "@/lib/studioSound";
 
@@ -13,7 +15,7 @@ interface MenuPos {
 }
 
 const MENU_WIDTH = 200;
-const MENU_HEIGHT = 152;
+const MENU_HEIGHT = 194;
 
 /**
  * Minimalist OFF+BRAND right-click quick-action pill.
@@ -120,6 +122,20 @@ export function StudioContextMenu() {
             <span>TASKPANEL</span>
             <ArrowUpRightIcon size={14} weight="bold" aria-hidden="true" />
           </a>
+
+          <button
+            role="menuitem"
+            type="button"
+            onClick={() => {
+              studioSound.playClick();
+              setPos(null);
+              openSurveyPanel();
+            }}
+            className="flex min-h-[42px] w-full cursor-pointer items-center justify-between px-3 font-condensed text-xs font-extrabold tracking-[0.14em] uppercase text-[#5C9AFF] transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <span>SURVEYPANEL</span>
+            <ArrowRightIcon size={14} weight="bold" aria-hidden="true" />
+          </button>
 
           <button
             role="menuitem"

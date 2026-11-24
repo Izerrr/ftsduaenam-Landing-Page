@@ -9,6 +9,16 @@ export const URLS = {
   emailDisplay: "admin@ftsduaenam.web.id",
 } as const;
 
+export const SURVEYPANEL_MODULE = {
+  badge: "HOT NOW",
+  name: "SURVEYPANEL",
+  firstWord: "SURVEY",
+  secondWord: "PANEL",
+  hash: "#surveypanel",
+  shareUrl: "https://ftsduaenam.web.id/#surveypanel",
+  subtitle: "B. INDONESIA · ARTIKEL ILMIAH",
+} as const;
+
 export const ARCHIVE_MODULE = {
   badge: "ARCHIVED · 26",
   firstWord: "CON",

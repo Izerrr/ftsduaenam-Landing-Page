@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { ArrowRightIcon } from "@phosphor-icons/react/ArrowRight";
 import { ArrowUpRightIcon } from "@phosphor-icons/react/ArrowUpRight";
 import {
   IDENTITY,
   SCENES,
+  SURVEYPANEL_MODULE,
   URLS,
   type SceneId,
   type SceneMeta,
@@ -11,6 +13,7 @@ import {
 import { FtsLogo } from "@/components/FtsLogo";
 import { Magnetic } from "@/components/Magnetic";
 import { SlotRollText } from "@/components/SlotRollText";
+import { openSurveyPanel } from "@/lib/sceneNavigation";
 import { studioSound, useSoundEnabled } from "@/lib/studioSound";
 
 interface TopBarProps {
@@ -30,6 +33,9 @@ const EQ_BARS = [
 ] as const;
 
 type HeaderSurface = "dark" | "light" | "cobalt";
+type TopCtaTarget = "taskpanel" | "surveypanel";
+
+const TOP_CTA_INTERVAL_MS = 3600;
 
 /**
  * OFF+BRAND architectural top bar + full-screen kinetic overlay menu.
@@ -44,8 +50,20 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
   const [bridgeBehindBar, setBridgeBehindBar] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [hoveredScene, setHoveredScene] = useState<SceneMeta | null>(null);
+  const [ctaTarget, setCtaTarget] = useState<TopCtaTarget>("taskpanel");
+  const [ctaPaused, setCtaPaused] = useState(false);
   const soundEnabled = useSoundEnabled();
   const prefersReduced = Boolean(useReducedMotion());
+
+  useEffect(() => {
+    if (prefersReduced || menuOpen || ctaPaused) return;
+    const timer = window.setInterval(() => {
+      setCtaTarget((prev) =>
+        prev === "taskpanel" ? "surveypanel" : "taskpanel"
+      );
+    }, TOP_CTA_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [prefersReduced, menuOpen, ctaPaused]);
 
   useEffect(() => {
     const sections = Array.from(
@@ -318,15 +336,69 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
 
             <Magnetic strength={0.2} className="hidden sm:inline-flex">
               <a
-                href={URLS.taskpanel}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => studioSound.playClick()}
-                data-cursor="OPEN"
-                className={`chamfer-sm inline-flex min-h-[44px] items-center gap-2 px-5 font-condensed text-sm font-extrabold tracking-[0.12em] uppercase transition-all duration-200 active:scale-[0.97] ${ctaPlate}`}
+                href={
+                  ctaTarget === "taskpanel"
+                    ? URLS.taskpanel
+                    : SURVEYPANEL_MODULE.hash
+                }
+                target={ctaTarget === "taskpanel" ? "_blank" : undefined}
+                rel={
+                  ctaTarget === "taskpanel"
+                    ? "noopener noreferrer"
+                    : undefined
+                }
+                onMouseEnter={() => setCtaPaused(true)}
+                onMouseLeave={() => setCtaPaused(false)}
+                onFocus={() => setCtaPaused(true)}
+                onBlur={() => setCtaPaused(false)}
+                onClick={(event) => {
+                  studioSound.playClick();
+                  if (ctaTarget === "surveypanel") {
+                    event.preventDefault();
+                    openSurveyPanel();
+                  }
+                }}
+                aria-label={
+                  ctaTarget === "taskpanel"
+                    ? "Buka TaskPanel Workspace di tab baru"
+                    : "Buka SurveyPanel Kuesioner FTS26"
+                }
+                data-cursor={ctaTarget === "taskpanel" ? "OPEN" : "SURVEY"}
+                className={`chamfer-sm inline-flex min-h-[44px] min-w-[152px] items-center justify-center overflow-hidden px-5 font-condensed text-sm font-extrabold tracking-[0.12em] uppercase transition-colors duration-200 active:scale-[0.97] ${ctaPlate}`}
               >
-                <span>TASKPANEL</span>
-                <ArrowUpRightIcon size={15} weight="bold" aria-hidden="true" />
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.span
+                    key={ctaTarget}
+                    initial={
+                      prefersReduced ? { opacity: 0 } : { opacity: 0, y: 8 }
+                    }
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={
+                      prefersReduced ? { opacity: 0 } : { opacity: 0, y: -8 }
+                    }
+                    transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                    className="inline-flex items-center gap-2 whitespace-nowrap"
+                  >
+                    <span>
+                      {ctaTarget === "taskpanel"
+                        ? "TASKPANEL"
+                        : SURVEYPANEL_MODULE.name}
+                    </span>
+                    {ctaTarget === "taskpanel" ? (
+                      <ArrowUpRightIcon
+                        size={15}
+                        weight="bold"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <ArrowRightIcon
+                        size={15}
+                        weight="bold"
+                        aria-hidden="true"
+                      />
+                    )}
+                  </motion.span>
+                </AnimatePresence>
               </a>
             </Magnetic>
 
@@ -484,6 +556,17 @@ export function TopBar({ portalFloodActive }: TopBarProps) {
               </div>
 
               <div className="flex flex-wrap items-center gap-5">
+                <a
+                  href={SURVEYPANEL_MODULE.hash}
+                  onClick={() => {
+                    studioSound.playClick();
+                    setMenuOpen(false);
+                    setHoveredScene(null);
+                  }}
+                  className="inline-flex min-h-[44px] items-center gap-1 font-condensed font-bold tracking-[0.16em] uppercase text-[#5C9AFF] transition-colors hover:text-white"
+                >
+                  <span>SURVEYPANEL</span>
+                </a>
                 <a
                   href={URLS.taskpanel}
                   target="_blank"

@@ -8,6 +8,7 @@ import {
   useTransform,
 } from "motion/react";
 import { ArrowDownIcon } from "@phosphor-icons/react/ArrowDown";
+import { ArrowRightIcon } from "@phosphor-icons/react/ArrowRight";
 import { ArrowUpRightIcon } from "@phosphor-icons/react/ArrowUpRight";
 import { ARCHIVE_MODULE, URLS } from "@/data/services";
 import { useScrollSkew } from "@/hooks/useScrollSkew";
@@ -132,7 +133,7 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
       data-theme="light"
       data-portal-flood={engaged ? "true" : "false"}
       onPointerMove={handleSectionPointerMove}
-      className="relative z-10 flex min-h-[100dvh] w-full flex-col items-center justify-center overflow-hidden bg-[#F4F4EE] px-4 py-18 text-[#111112] sm:px-8"
+      className="relative z-10 flex min-h-[100dvh] w-full flex-col items-center justify-center overflow-hidden bg-[#F4F4EE] px-4 py-14 text-[#111112] sm:px-8"
     >
       {/* Full-bleed Electric Cobalt flood sweep on hover/focus */}
       <motion.div
@@ -321,73 +322,151 @@ export function PortalScene({ onFloodChange }: PortalSceneProps) {
             @student.uns.ac.id &middot; discord
           </p>
 
-          {/* Highlighted FTS26 Archive Strip: Constella 2026 */}
-          <motion.a
-            href={ARCHIVE_MODULE.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-cursor="ARCHIVE"
-            onClick={() => studioSound.playClick()}
-            whileTap={prefersReduced ? undefined : { scale: 0.99 }}
-            className={`group relative mt-8 flex w-full max-w-[820px] flex-col gap-2.5 border-y px-2 py-4 text-left no-underline transition-colors duration-200 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-3 ${
+          {/* Highlighted FTS26 Modules: Hot Mading Kuesioner + Constella Archive */}
+          <div
+            className={`mt-7 w-full max-w-[820px] divide-y border-y transition-colors duration-200 ${
               engaged
-                ? "border-white/30 text-white hover:border-white"
-                : "border-[#111112]/15 text-[#111112] hover:border-[#0258FF]"
+                ? "divide-white/25 border-white/30"
+                : "divide-[#111112]/12 border-[#111112]/15"
             }`}
           >
-            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-              <span
-                className={`chamfer-sm border px-2.5 py-0.5 font-mono text-[10px] tracking-[0.14em] uppercase transition-colors duration-200 ${
-                  engaged
-                    ? "border-white/35 text-white/90"
-                    : "border-[#111112]/20 text-[#4A4A45] group-hover:border-[#0258FF]/45 group-hover:text-[#004BE0]"
-                }`}
-              >
-                {ARCHIVE_MODULE.badge}
-              </span>
-
-              <span className="flex items-baseline gap-0.5 text-[clamp(1.65rem,1.2rem+1.8vw,2.35rem)] leading-none">
-                <span className="font-condensed font-extrabold tracking-[-0.03em] uppercase">
-                  {ARCHIVE_MODULE.firstWord}
-                </span>
+            {/* Row 1: HOT NOW - SurveyPanel Kuesioner (Bahasa Indonesia) */}
+            <motion.a
+              href="#surveypanel"
+              data-cursor="SURVEY"
+              onClick={() => studioSound.playClick()}
+              whileTap={prefersReduced ? undefined : { scale: 0.99 }}
+              className={`group relative flex flex-col gap-2.5 px-2 py-3.5 text-left no-underline transition-colors duration-200 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-3 ${
+                engaged
+                  ? "text-white hover:bg-white/10"
+                  : "text-[#111112] hover:bg-[#0258FF]/[0.04]"
+              }`}
+            >
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                 <span
-                  className={`font-editorial italic tracking-[-0.02em] transition-colors duration-200 ${
+                  className={`chamfer-sm inline-flex items-center gap-1.5 px-2.5 py-0.5 font-condensed text-[10px] font-extrabold tracking-[0.16em] uppercase transition-colors duration-200 ${
                     engaged
-                      ? "text-white"
-                      : "text-[#004BE0] group-hover:text-[#0258FF]"
+                      ? "bg-white text-[#111112]"
+                      : "bg-[#0258FF] text-white"
                   }`}
                 >
-                  {ARCHIVE_MODULE.secondWord}
+                  <span
+                    className={`h-1.5 w-1.5 ${
+                      engaged ? "bg-[#0258FF]" : "bg-white"
+                    }`}
+                  />
+                  <span>HOT NOW</span>
                 </span>
-              </span>
-            </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end sm:gap-5">
-              <span
-                className={`font-mono text-[11px] tracking-[0.14em] uppercase transition-colors duration-200 ${
-                  engaged ? "text-white/85" : "text-[#4A4A45]"
-                }`}
-              >
-                {ARCHIVE_MODULE.metrics}
-              </span>
+                <span className="flex items-baseline gap-0.5 text-[clamp(1.55rem,1.1rem+1.6vw,2.15rem)] leading-none">
+                  <span className="font-condensed font-extrabold tracking-[-0.03em] uppercase">
+                    SURVEY
+                  </span>
+                  <span
+                    className={`font-editorial italic tracking-[-0.02em] transition-colors duration-200 ${
+                      engaged
+                        ? "text-white"
+                        : "text-[#004BE0] group-hover:text-[#0258FF]"
+                    }`}
+                  >
+                    Panel
+                  </span>
+                </span>
+              </div>
 
-              <span
-                className={`inline-flex min-h-[32px] items-center gap-1.5 font-condensed text-xs font-extrabold tracking-[0.16em] uppercase transition-colors duration-200 ${
-                  engaged
-                    ? "text-white"
-                    : "text-[#111112] group-hover:text-[#004BE0]"
-                }`}
-              >
-                <span>{ARCHIVE_MODULE.shortDomain}</span>
-                <ArrowUpRightIcon
-                  size={14}
-                  weight="bold"
-                  aria-hidden="true"
-                  className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                />
-              </span>
-            </div>
-          </motion.a>
+              <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end sm:gap-5">
+                <span
+                  className={`font-mono text-[11px] tracking-[0.14em] uppercase transition-colors duration-200 ${
+                    engaged ? "text-white/85" : "text-[#4A4A45]"
+                  }`}
+                >
+                  B. INDONESIA &middot; ARTIKEL ILMIAH
+                </span>
+
+                <span
+                  className={`inline-flex min-h-[32px] items-center gap-1.5 font-condensed text-xs font-extrabold tracking-[0.16em] uppercase transition-colors duration-200 ${
+                    engaged
+                      ? "text-white"
+                      : "text-[#111112] group-hover:text-[#004BE0]"
+                  }`}
+                >
+                  <span>BUKA SURVEYPANEL</span>
+                  <ArrowRightIcon
+                    size={14}
+                    weight="bold"
+                    aria-hidden="true"
+                    className="transition-transform duration-200 group-hover:translate-x-1"
+                  />
+                </span>
+              </div>
+            </motion.a>
+
+            {/* Row 2: Archived Module — Constella 2026 */}
+            <motion.a
+              href={ARCHIVE_MODULE.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-cursor="ARCHIVE"
+              onClick={() => studioSound.playClick()}
+              whileTap={prefersReduced ? undefined : { scale: 0.99 }}
+              className={`group relative flex flex-col gap-2.5 px-2 py-3.5 text-left no-underline transition-colors duration-200 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-3 ${
+                engaged ? "text-white" : "text-[#111112]"
+              }`}
+            >
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                <span
+                  className={`chamfer-sm border px-2.5 py-0.5 font-mono text-[10px] tracking-[0.14em] uppercase transition-colors duration-200 ${
+                    engaged
+                      ? "border-white/35 text-white/90"
+                      : "border-[#111112]/20 text-[#4A4A45] group-hover:border-[#0258FF]/45 group-hover:text-[#004BE0]"
+                  }`}
+                >
+                  {ARCHIVE_MODULE.badge}
+                </span>
+
+                <span className="flex items-baseline gap-0.5 text-[clamp(1.55rem,1.1rem+1.6vw,2.15rem)] leading-none">
+                  <span className="font-condensed font-extrabold tracking-[-0.03em] uppercase">
+                    {ARCHIVE_MODULE.firstWord}
+                  </span>
+                  <span
+                    className={`font-editorial italic tracking-[-0.02em] transition-colors duration-200 ${
+                      engaged
+                        ? "text-white"
+                        : "text-[#004BE0] group-hover:text-[#0258FF]"
+                    }`}
+                  >
+                    {ARCHIVE_MODULE.secondWord}
+                  </span>
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end sm:gap-5">
+                <span
+                  className={`font-mono text-[11px] tracking-[0.14em] uppercase transition-colors duration-200 ${
+                    engaged ? "text-white/85" : "text-[#4A4A45]"
+                  }`}
+                >
+                  {ARCHIVE_MODULE.metrics}
+                </span>
+
+                <span
+                  className={`inline-flex min-h-[32px] items-center gap-1.5 font-condensed text-xs font-extrabold tracking-[0.16em] uppercase transition-colors duration-200 ${
+                    engaged
+                      ? "text-white"
+                      : "text-[#111112] group-hover:text-[#004BE0]"
+                  }`}
+                >
+                  <span>{ARCHIVE_MODULE.shortDomain}</span>
+                  <ArrowUpRightIcon
+                    size={14}
+                    weight="bold"
+                    aria-hidden="true"
+                    className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                  />
+                </span>
+              </div>
+            </motion.a>
+          </div>
 
           <a
             href="#signal"

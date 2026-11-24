@@ -220,6 +220,13 @@ export function SignalScene({ portalFloodActive }: SignalSceneProps) {
             {/* Zone 3: Direct Gateway & Legal + Circular Magnetic Back-to-Top */}
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 md:justify-end">
               <a
+                href="#surveypanel"
+                onClick={() => studioSound.playClick()}
+                className="inline-flex min-h-[44px] items-center font-condensed text-xs font-bold tracking-[0.16em] uppercase text-[#5C9AFF] transition-colors hover:text-white"
+              >
+                SURVEYPANEL
+              </a>
+              <a
                 href={URLS.constella}
                 target="_blank"
                 rel="noopener noreferrer"

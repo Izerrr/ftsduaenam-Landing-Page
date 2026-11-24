@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import Lenis from "lenis";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { studioSound } from "@/lib/studioSound";
-import { isTypingBurstActive } from "@/lib/sceneNavigation";
+import {
+  isSurveyPanelHash,
+  isTypingBurstActive,
+  openSurveyPanel,
+} from "@/lib/sceneNavigation";
 
 const SCENE_SHORTCUTS: Record<string, { selector: string; index: string }> = {
   "1": { selector: "#monolith", index: "01" },
@@ -104,6 +108,11 @@ export function SmoothScroll() {
       if (!link) return;
       const hash = link.getAttribute("href");
       if (!hash || hash === "#") return;
+      if (isSurveyPanelHash(hash)) {
+        event.preventDefault();
+        openSurveyPanel();
+        return;
+      }
       const target = document.querySelector<HTMLElement>(hash);
       if (!target) return;
       event.preventDefault();
@@ -113,6 +122,9 @@ export function SmoothScroll() {
     // Keyboard shortcuts: press 1, 2, or 3 to jump straight to scenes 01 / 02 / 03
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (document.querySelector("[data-surveypanel-dialog='true']")) {
+        return;
+      }
       const activeTag = document.activeElement?.tagName;
       if (
         activeTag === "INPUT" ||
