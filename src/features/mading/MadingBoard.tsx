@@ -15,6 +15,8 @@ import { ArrowUpRightIcon } from "@phosphor-icons/react/ArrowUpRight";
 import { CheckIcon } from "@phosphor-icons/react/Check";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
+import { QrCodeIcon } from "@phosphor-icons/react/QrCode";
+import { ShareNetworkIcon } from "@phosphor-icons/react/ShareNetwork";
 import { ShuffleIcon } from "@phosphor-icons/react/Shuffle";
 import { WhatsappLogoIcon } from "@phosphor-icons/react/WhatsappLogo";
 import { XIcon } from "@phosphor-icons/react/X";
@@ -30,6 +32,13 @@ import type {
   MadingDataState,
   QuestionnaireGroup,
 } from "@/features/mading/types";
+import {
+  type FormTitleMeta,
+  loadSeedFormTitles,
+  readCachedFormTitles,
+  resolveLiveFormMeta,
+} from "@/features/mading/formTitleResolver";
+import { QrShareModal } from "@/features/mading/QrShareModal";
 import { useFilledSurveys } from "@/features/mading/useFilledSurveys";
 import {
   buildClassBroadcastText,
@@ -42,7 +51,7 @@ interface MadingBoardProps {
   onClose: () => void;
 }
 
-type StatusFilter = "all" | "ready" | "pending";
+type StatusFilter = "all" | "ready" | "unfilled" | "pending";
 
 const TAB_SPRING = {
   type: "spring" as const,
@@ -55,8 +64,18 @@ const CLASSES: readonly ClassSectionId[] = ["A", "B"] as const;
 const FILTER_TABS: readonly { id: StatusFilter; label: string }[] = [
   { id: "all", label: "SEMUA" },
   { id: "ready", label: "SIAP DIISI" },
+  { id: "unfilled", label: "BELUM KAMU ISI" },
   { id: "pending", label: "BELUM ADA LINK" },
 ] as const;
+
+function fisherYatesShuffle<T>(items: readonly T[]): T[] {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
 
 /**
  * Full-page FTS26 SurveyPanel Board styled with main landing-page elements & subtle motion:
@@ -85,10 +104,16 @@ export function MadingBoard({ onClose }: MadingBoardProps) {
   const [query, setQuery] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [shuffledIds, setShuffledIds] = useState<string[] | null>(null);
+  const [expandedDescIds, setExpandedDescIds] = useState<string[]>([]);
   const [customBroadcastText, setCustomBroadcastText] = useState<string | null>(
     null
   );
   const [waCopied, setWaCopied] = useState(false);
+  const [formTitles, setFormTitles] = useState<Record<string, FormTitleMeta>>(
+    () => readCachedFormTitles()
+  );
 
   // Scroll-driven animations scoped cleanly inside the Mading scroll container
   const { scrollYProgress } = useScroll({ container: containerRef });
@@ -117,6 +142,8 @@ export function MadingBoard({ onClose }: MadingBoardProps) {
 
       setHoveredRowId(null);
       setCustomBroadcastText(null);
+      setShuffledIds(null);
+      setExpandedDescIds([]);
       if (targetFeed.classes[targetClass]) {
         setDataState((prev) => ({
           status: "loading",
@@ -175,7 +202,7 @@ export function MadingBoard({ onClose }: MadingBoardProps) {
     containerRef.current?.focus();
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && !qrOpen) {
         onClose();
       }
     };
@@ -185,14 +212,78 @@ export function MadingBoard({ onClose }: MadingBoardProps) {
       document.body.style.overflow = prevOverflow;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [onClose]);
+  }, [onClose, qrOpen]);
 
-  const effectiveGroups = useMemo(
+  const rawGroups = useMemo(
     () =>
       activeClassSource && dataState.sourceKey === currentSourceKey
         ? dataState.groups
         : [],
     [activeClassSource, currentSourceKey, dataState]
+  );
+
+  // Enrich groups whose sheet topic column is blank by resolving Google Form titles
+  // from build-time seed cache + background CORS-friendly metadata fallback
+  useEffect(() => {
+    const targetUrls = Array.from(
+      new Set(
+        rawGroups
+          .filter((g) => !g.topik && g.primaryLink)
+          .map((g) => g.primaryLink as string)
+      )
+    );
+    if (targetUrls.length === 0) return;
+
+    const controller = new AbortController();
+
+    void loadSeedFormTitles().then(async (seed) => {
+      if (controller.signal.aborted) return;
+
+      if (Object.keys(seed).length > 0) {
+        setFormTitles((prev) => ({ ...seed, ...prev }));
+      }
+
+      const cached = readCachedFormTitles();
+      const missingUrls = targetUrls.filter(
+        (url) => !(url in seed) && !(url in cached)
+      );
+      if (missingUrls.length === 0) return;
+
+      const queue = [...missingUrls];
+      const runWorker = async () => {
+        while (queue.length > 0 && !controller.signal.aborted) {
+          const nextUrl = queue.shift();
+          if (!nextUrl) return;
+          const meta = await resolveLiveFormMeta(nextUrl, controller.signal);
+          if (meta && !controller.signal.aborted) {
+            setFormTitles((prev) => ({ ...prev, [nextUrl]: meta }));
+          }
+        }
+      };
+
+      const concurrency = Math.min(2, missingUrls.length);
+      await Promise.all(Array.from({ length: concurrency }, runWorker));
+    });
+
+    return () => controller.abort();
+  }, [rawGroups]);
+
+  const effectiveGroups = useMemo(
+    () =>
+      rawGroups.map((group) => {
+        if (!group.primaryLink) return group;
+        const meta = formTitles[group.primaryLink];
+        if (!meta) return group;
+        return {
+          ...group,
+          topik: group.topik ?? meta.title,
+          topikFromForm: !group.topik && Boolean(meta.title),
+          formDescription: meta.description ?? null,
+          estimatedTime: meta.estimatedTime ?? null,
+          requiresLogin: meta.requiresLogin,
+        };
+      }),
+    [rawGroups, formTitles]
   );
 
   const isLoading =
@@ -224,14 +315,18 @@ export function MadingBoard({ onClose }: MadingBoardProps) {
 
   const filteredGroups = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return effectiveGroups.filter((group) => {
+    const matched = effectiveGroups.filter((group) => {
       if (filter === "ready" && !group.primaryLink) return false;
+      if (filter === "unfilled" && (!group.primaryLink || isFilled(group.id))) {
+        return false;
+      }
       if (filter === "pending" && group.primaryLink) return false;
       if (!needle) return true;
 
       const haystack = [
         group.kelompok,
         group.topik ?? "",
+        group.formDescription ?? "",
         group.linkHost ?? "",
         ...group.members.map((m) => m.nama),
       ]
@@ -240,7 +335,33 @@ export function MadingBoard({ onClose }: MadingBoardProps) {
 
       return haystack.includes(needle);
     });
-  }, [effectiveGroups, filter, query]);
+
+    if (!shuffledIds) return matched;
+    const rank = new Map(shuffledIds.map((id, index) => [id, index]));
+    return [...matched].sort(
+      (a, b) => (rank.get(a.id) ?? 999) - (rank.get(b.id) ?? 999)
+    );
+  }, [effectiveGroups, filter, query, isFilled, shuffledIds]);
+
+  const handleToggleShuffleOrder = () => {
+    studioSound.playClick();
+    if (shuffledIds !== null) {
+      setShuffledIds(null);
+      return;
+    }
+    const shuffledReady = fisherYatesShuffle(readyGroups);
+    const shuffledPending = fisherYatesShuffle(pendingGroups);
+    setShuffledIds([...shuffledReady, ...shuffledPending].map((g) => g.id));
+  };
+
+  const handleToggleDescription = (groupId: string) => {
+    studioSound.playClick();
+    setExpandedDescIds((prev) =>
+      prev.includes(groupId)
+        ? prev.filter((id) => id !== groupId)
+        : [...prev, groupId]
+    );
+  };
 
   const handleSpotlightMove = (event: React.PointerEvent<HTMLElement>) => {
     if (prefersReduced || !spotlightRef.current) return;
@@ -277,8 +398,24 @@ export function MadingBoard({ onClose }: MadingBoardProps) {
     }
   };
 
-  const handleCopyBoardUrl = async () => {
+  const handleSharePanel = async () => {
     const url = `${window.location.origin}/#surveypanel`;
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      try {
+        await navigator.share({
+          title: "SurveyPanel FTS26",
+          text: `Kumpulan kuesioner ${activeFeed.titleFirst} ${activeFeed.titleSecond} Kelas ${selectedClass} FTS26`,
+          url,
+        });
+        studioSound.playSuccess();
+        return;
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          return;
+        }
+      }
+    }
+
     try {
       await navigator.clipboard.writeText(url);
       studioSound.playSuccess();
@@ -401,7 +538,7 @@ export function MadingBoard({ onClose }: MadingBoardProps) {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={handleCopyBoardUrl}
+              onClick={() => void handleSharePanel()}
               data-cursor={shareCopied ? "COPIED" : "SHARE"}
               className="chamfer-sm inline-flex min-h-[44px] cursor-pointer items-center gap-2 border border-white/20 px-3.5 font-condensed text-xs font-bold tracking-[0.14em] uppercase text-[#F4F4EE] transition-colors hover:border-white hover:bg-white hover:text-[#111112]"
             >
@@ -412,11 +549,30 @@ export function MadingBoard({ onClose }: MadingBoardProps) {
                 </>
               ) : (
                 <>
-                  <CopyIcon size={14} weight="bold" aria-hidden="true" />
+                  <ShareNetworkIcon
+                    size={14}
+                    weight="bold"
+                    aria-hidden="true"
+                  />
                   <span className="hidden sm:inline">BAGIKAN PANEL</span>
                   <span className="sm:hidden">SHARE</span>
                 </>
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                studioSound.playClick();
+                setQrOpen(true);
+              }}
+              aria-label="Tampilkan QR Code SurveyPanel"
+              data-cursor="QR"
+              className="chamfer-sm inline-flex min-h-[44px] cursor-pointer items-center gap-2 border border-white/20 px-3.5 font-condensed text-xs font-bold tracking-[0.14em] uppercase text-[#F4F4EE] transition-colors hover:border-[#0258FF] hover:bg-[#0258FF] hover:text-white"
+            >
+              <QrCodeIcon size={15} weight="bold" aria-hidden="true" />
+              <span className="hidden sm:inline">QR CODE</span>
+              <span className="sm:hidden">QR</span>
             </button>
 
             <button
@@ -736,31 +892,52 @@ export function MadingBoard({ onClose }: MadingBoardProps) {
           </div>
         ) : (
           <>
-            {/* Search & Animated Filter Toolbar */}
-            <div className="mt-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-              <div className="relative w-full sm:max-w-sm">
-                <MagnifyingGlassIcon
-                  size={16}
-                  weight="bold"
-                  aria-hidden="true"
-                  className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[#A1A19C]"
-                />
-                <input
-                  type="search"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Cari kelompok, topik, atau nama..."
-                  aria-label="Cari kelompok atau nama mahasiswa"
-                  className="chamfer-sm min-h-[44px] w-full border border-white/15 bg-white/[0.03] py-2 pr-9 pl-9 font-sans text-sm text-[#F4F4EE] placeholder:text-[#A1A19C]/70 focus:border-[#0258FF] focus:outline-none"
-                />
-                {query && (
+            {/* Search, Shuffle & Animated Filter Toolbar */}
+            <div className="mt-8 flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+              <div className="flex flex-wrap items-center gap-2.5 sm:flex-nowrap">
+                <div className="relative w-full sm:w-72">
+                  <MagnifyingGlassIcon
+                    size={16}
+                    weight="bold"
+                    aria-hidden="true"
+                    className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[#A1A19C]"
+                  />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Cari kelompok, topik, atau nama..."
+                    aria-label="Cari kelompok atau nama mahasiswa"
+                    className="chamfer-sm min-h-[44px] w-full border border-white/15 bg-white/[0.03] py-2 pr-9 pl-9 font-sans text-sm text-[#F4F4EE] placeholder:text-[#A1A19C]/70 focus:border-[#0258FF] focus:outline-none"
+                  />
+                  {query && (
+                    <button
+                      type="button"
+                      onClick={() => setQuery("")}
+                      aria-label="Hapus pencarian"
+                      className="absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer p-1 text-[#A1A19C] hover:text-white"
+                    >
+                      <XIcon size={14} weight="bold" aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
+
+                {readyGroups.length > 1 && (
                   <button
                     type="button"
-                    onClick={() => setQuery("")}
-                    aria-label="Hapus pencarian"
-                    className="absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer p-1 text-[#A1A19C] hover:text-white"
+                    aria-pressed={Boolean(shuffledIds)}
+                    onClick={handleToggleShuffleOrder}
+                    data-cursor="SHUFFLE"
+                    className={`chamfer-sm inline-flex min-h-[44px] shrink-0 cursor-pointer items-center gap-2 border px-3.5 font-condensed text-xs font-extrabold tracking-[0.14em] uppercase transition-colors ${
+                      shuffledIds
+                        ? "border-[#0258FF] bg-[#0258FF]/18 text-[#5C9AFF]"
+                        : "border-white/15 text-[#A1A19C] hover:border-white/35 hover:text-white"
+                    }`}
                   >
-                    <XIcon size={14} weight="bold" aria-hidden="true" />
+                    <ShuffleIcon size={14} weight="bold" aria-hidden="true" />
+                    <span>
+                      {shuffledIds ? "URUTAN ACAK" : "ACAK URUTAN"}
+                    </span>
                   </button>
                 )}
               </div>
@@ -777,7 +954,9 @@ export function MadingBoard({ onClose }: MadingBoardProps) {
                       ? effectiveGroups.length
                       : tab.id === "ready"
                         ? readyGroups.length
-                        : pendingGroups.length;
+                        : tab.id === "unfilled"
+                          ? unfilledReadyGroups.length
+                          : pendingGroups.length;
 
                   return (
                     <button
@@ -924,7 +1103,46 @@ export function MadingBoard({ onClose }: MadingBoardProps) {
                                 {group.linkHost}
                               </span>
                             )}
+
+                            {group.estimatedTime && (
+                              <span className="chamfer-sm border border-white/15 bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] tracking-[0.06em] uppercase text-[#F4F4EE]">
+                                {group.estimatedTime}
+                              </span>
+                            )}
+
+                            {group.requiresLogin && (
+                              <span className="chamfer-sm border border-amber-300/35 bg-amber-300/10 px-1.5 py-0.5 font-mono text-[10px] tracking-[0.08em] uppercase text-amber-300">
+                                PERLU LOGIN GOOGLE
+                              </span>
+                            )}
                           </div>
+
+                          {group.formDescription && (
+                            <div className="mt-1.5">
+                              <p
+                                className={`text-xs leading-relaxed text-[#A1A19C]/90 ${
+                                  expandedDescIds.includes(group.id)
+                                    ? ""
+                                    : "line-clamp-2"
+                                }`}
+                              >
+                                {group.formDescription}
+                              </p>
+                              {group.formDescription.length > 140 && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleToggleDescription(group.id)
+                                  }
+                                  className="mt-0.5 cursor-pointer font-mono text-[10px] tracking-[0.06em] uppercase text-[#5C9AFF] hover:underline"
+                                >
+                                  {expandedDescIds.includes(group.id)
+                                    ? "Ringkas"
+                                    : "Lihat selengkapnya"}
+                                </button>
+                              )}
+                            </div>
+                          )}
 
                           <p className="mt-1.5 text-xs leading-relaxed text-[#A1A19C]">
                             {group.members.map((member, mIdx) => (
@@ -1279,6 +1497,13 @@ export function MadingBoard({ onClose }: MadingBoardProps) {
         </div>
       </footer>
       </div>
+
+      <QrShareModal
+        open={qrOpen}
+        onClose={() => setQrOpen(false)}
+        shareUrl={panelShareUrl}
+        subtitle={`${activeFeed.titleFirst} ${activeFeed.titleSecond} · KELAS ${selectedClass}`}
+      />
     </motion.div>
   );
 }

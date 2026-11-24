@@ -28,6 +28,10 @@ export interface QuestionnaireGroup {
   kelompok: string;
   order: number;
   topik: string | null;
+  topikFromForm?: boolean;
+  formDescription?: string | null;
+  estimatedTime?: string | null;
+  requiresLogin?: boolean;
   links: string[];
   primaryLink: string | null;
   linkHost: string | null;

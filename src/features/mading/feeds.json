@@ -1,0 +1,19 @@
+[
+  {
+    "id": "bahasa-indonesia",
+    "index": "01",
+    "tag": "HOT RIGHT NOW",
+    "titleFirst": "BAHASA",
+    "titleSecond": "Indonesia",
+    "subtitle": "Kuesioner Artikel Ilmiah",
+    "isHot": true,
+    "defaultClass": "B",
+    "classes": {
+      "A": null,
+      "B": {
+        "spreadsheetId": "1oQt6d9MvtLfzExhRikWJWpf9K4sKeKY5IzUlP1sMZ2Y",
+        "gid": "1260541291"
+      }
+    }
+  }
+]

@@ -1,0 +1,38 @@
+{
+  "titles": {
+    "https://docs.google.com/forms/d/e/1FAIpQLSc3zTqqdEiJp-2TzdJnkPXbAcoQmWCg8UMm2u6cszEa6h9l-g/viewform?usp=header": {
+      "title": null,
+      "requiresLogin": true
+    },
+    "https://docs.google.com/forms/d/e/1FAIpQLSektCvxpdFgqx_jvcuNnS6980MoKM39tpfFtJorfwGrjkl8ig/viewform?usp=dialog": {
+      "title": "Korelasi antara Pengalaman Win Streak dan Lose Streak Game Online terhadap Mood Mahasiswa dalam Mengerjakan Tugas Kuliah",
+      "description": "Halo rekan-rekan mahasiswa! Kuesioner ini disusun untuk keperluan penelitian artikel ilmiah mengenai hubungan pengalaman win streak dan lose streak saat bermain game online terhadap mood dalam mengerjakan tugas kuliah. Pengisian hanya membutuhkan waktu ±2 menit. Seluruh data bersifat rahasia dan hanya digunakan untuk kepentingan akademik. Terima kasih atas partisipasinya!",
+      "estimatedTime": "±2 MENIT"
+    },
+    "https://forms.gle/KZ217VHxSok2E3ZX6": {
+      "title": "Survei Pengalaman Komunikasi Mahasiswa Informatika UNS Luar Jawa",
+      "description": "Halo teman-teman Informatika UNS! Pernah ngerasa cengo atau ketinggalan konteks pas lagi ngobrol maupun kerja kelompok gara-gara obrolannya tiba-tiba full bahasa Jawa? Kami lagi meneliti tentang Dominasi Bahasa Jawa sebagai Hambatan Komunikasi bagi Mahasiswa Informatika UNS Luar Jawa. Kalau kamu mahasiswa aktif Informatika UNS yang merantau dari luar Pulau Jawa, yuk bantu isi survei singkat ini! Cuma butuh waktu sekitar 5-7 menit Tidak ada jawaban benar atau salah, cukup jawab sesuai pengalamanmu sehari-hari di kampus Identitas dijamin aman dan hanya dipakai untuk keperluan tugas penelitian Makasih banyak atas bantuannya, semoga tugas dan ngoding-nya lancar terus!",
+      "estimatedTime": "5-7 MENIT"
+    },
+    "https://forms.gle/qvW1pvq8ieZKCfog8": {
+      "title": "Survei Pengalaman Belajar Mahasiswa Informatika Semester 1",
+      "description": "Halo, terima kasih telah bersedia meluangkan waktu. Survei ini dilakukan oleh Indira Putri, Lubna Hana, Raffael Onesiforus dari Prodi Informatika untuk memahami pengalaman belajar mahasiswa Informatika semester 1. - Tidak ada jawaban benar atau salah; jawablah sesuai pengalaman Anda sendiri. - Jawaban Anda DIJAMIN kerahasiaannya oleh peneliti. - Partisipasi bersifat SUKARELA. Anda boleh berhenti kapan saja. - Jawaban bersifat RAHASIA, hanya dianalisis secara agregat, dan TIDAK MEMENGARUHI nilai mata kuliah. - Estimasi waktu pengisian: 8–10 menit.",
+      "estimatedTime": "8-10 MENIT"
+    },
+    "https://forms.gle/KtrwsuZGPqDLj1sm9": {
+      "title": "Pengaruh logat bahasa tertentu terhadap tingkat keakraban antar mahasiswa",
+      "description": "Terimakasih responden baik hati yang rela meluangkan ±2-3 menitnya untuk menjawab 4 soal di form ini",
+      "estimatedTime": "±2-3 MENIT"
+    },
+    "https://forms.gle/ynYFDSayZTSwWd3c8": {
+      "title": "Hubungan Kebiasaan Menggunakan AI dengan Persepsi Bahasa Akademik FATISDA UNS",
+      "description": "Halo para rekan-rekan mahasiswa/i sekalian, kami meminta waktunya sebentar dalam rangka mengisi kuisioner dengan tema \" Hubungan Kebiasaan Menggunakan AI dengan Persepsi Bahasa Akademik FATISDA UNS\". Kuisioner ini akan kami gunakan untuk keperluan penelitian artikel ilmiah. Pengisian kuisioner ini hanya memerlukan ±6 menit. Seluruh data akan kami jamin kerahasiaannya dan digunakan sebagai keperluan riset dan pengumpulan data guna menunjang kebutuhan akademik. Terima kasih atas perhatiannya!",
+      "estimatedTime": "±6 MENIT"
+    },
+    "https://uns.id/ManusiaVsAI": {
+      "title": "Uji Kepekaan Bahasa: Tulisan Manusia vs. AI",
+      "description": "Halo! Kami dari Kelompok 09 (Mata Kuliah Bahasa Indonesia, Kelas B, Prodi S-1 Informatika FATISDA UNS) meneliti tingkat kepekaan mahasiswa dalam membedakan kalimat efektif karya manusia dengan luaran model kecerdasan artifisial. Aturan main singkat: 1. Durasi pengisian ±3–4 menit (20 kalimat tunggal & 5 pasang paragraf pendek). 2. Jawab murni berdasarkan insting dan pemahaman bahasamu tanpa bantuan AI atau alat cek ejaan. 3. Skor kepekaan (total 25 poin) dan kunci jawaban langsung muncul setelah kamu menekan tombol Kirim!",
+      "estimatedTime": "±3-4 MENIT"
+    }
+  }
+}
